@@ -28,10 +28,10 @@
 
 // DOT
 
-chp::iterator import_graph(const parse_dot::node_id &syntax, map<string, chp::iterator> &nodes, ucs::variable_set &variables, chp::graph &g, tokenizer *token, bool define, bool squash_errors);
+petri::iterator import_graph(const parse_dot::node_id &syntax, map<string, petri::iterator> &nodes, ucs::variable_set &variables, chp::graph &g, tokenizer *token, bool define, bool squash_errors);
 map<string, string> import_graph(const parse_dot::attribute_list &syntax, tokenizer *tokens);
-void import_graph(const parse_dot::statement &syntax, chp::graph &g, ucs::variable_set &variables, map<string, map<string, string> > &globals, map<string, chp::iterator> &nodes, tokenizer *tokens, bool auto_define);
-void import_graph(const parse_dot::graph &syntax, chp::graph &g, ucs::variable_set &variables, map<string, map<string, string> > &globals, map<string, chp::iterator> &nodes, tokenizer *tokens, bool auto_define);
+void import_graph(const parse_dot::statement &syntax, chp::graph &g, ucs::variable_set &variables, map<string, map<string, string> > &globals, map<string, petri::iterator> &nodes, tokenizer *tokens, bool auto_define);
+void import_graph(const parse_dot::graph &syntax, chp::graph &g, ucs::variable_set &variables, map<string, map<string, string> > &globals, map<string, petri::iterator> &nodes, tokenizer *tokens, bool auto_define);
 chp::graph import_graph(const parse_dot::graph &syntax, ucs::variable_set &variables, tokenizer *tokens, bool auto_define);
 
 // CHP

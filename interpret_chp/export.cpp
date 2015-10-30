@@ -41,7 +41,7 @@ parse_dot::attribute_list export_attribute_list(const chp::iterator i, const chp
 	else
 	{
 		sub_result.as.push_back(plaintext);
-		label.second = export_composition(g.transitions[i.index].actions, variables).to_string();
+		label.second = export_composition(g.transitions[i.index].local_action, variables).to_string();
 	}
 
 	if (labels)
