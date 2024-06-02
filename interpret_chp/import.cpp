@@ -116,7 +116,7 @@ void import_graph(const parse_dot::statement &syntax, chp::graph &g, ucs::variab
 			if (attr == attributes.end())
 				attr = globals[syntax.statement_type].find("label");
 
-			arithmetic::cover c;
+			arithmetic::choice c;
 			if (attr != attributes.end() && attr != globals[syntax.statement_type].end() && attr->second.size() != 0)
 			{
 				tokenizer temp;
@@ -129,7 +129,7 @@ void import_graph(const parse_dot::statement &syntax, chp::graph &g, ucs::variab
 				if (temp.decrement(__FILE__, __LINE__))
 				{
 					parse_expression::composition exp(temp);
-					c = import_cover(exp, variables, 0, &temp, true);
+					c = import_choice(exp, variables, 0, &temp, true);
 				}
 
 				for (int i = 0; i < (int)n.size(); i++)
@@ -173,8 +173,8 @@ chp::graph import_graph(const parse_expression::expression &syntax, ucs::variabl
 	result.connect(b, t);
 	result.connect(t, e);
 
-	result.source.push_back(chp::state(vector<chp::token>(1, chp::token(b.index)), vector<arithmetic::value>()));
-	result.sink.push_back(chp::state(vector<chp::token>(1, chp::token(e.index)), vector<arithmetic::value>()));
+	result.source.push_back(chp::state(vector<chp::token>(1, chp::token(b.index)), arithmetic::state()));
+	result.sink.push_back(chp::state(vector<chp::token>(1, chp::token(e.index)), arithmetic::state()));
 	return result;
 }
 
@@ -188,8 +188,8 @@ chp::graph import_graph(const parse_expression::assignment &syntax, ucs::variabl
 	result.connect(b, t);
 	result.connect(t, e);
 
-	result.source.push_back(chp::state(vector<chp::token>(1, chp::token(b.index)), vector<arithmetic::value>()));
-	result.sink.push_back(chp::state(vector<chp::token>(1, chp::token(e.index)), vector<arithmetic::value>()));
+	result.source.push_back(chp::state(vector<chp::token>(1, chp::token(b.index)), arithmetic::state()));
+	result.sink.push_back(chp::state(vector<chp::token>(1, chp::token(e.index)), arithmetic::state()));
 	return result;
 }
 
@@ -225,8 +225,8 @@ chp::graph import_graph(const parse_chp::composition &syntax, ucs::variable_set 
 	{
 		petri::iterator b = result.create(chp::place());
 
-		result.source.push_back(chp::state(vector<chp::token>(1, chp::token(b.index)), vector<arithmetic::value>()));
-		result.sink.push_back(chp::state(vector<chp::token>(1, chp::token(b.index)), vector<arithmetic::value>()));
+		result.source.push_back(chp::state(vector<chp::token>(1, chp::token(b.index)), arithmetic::state()));
+		result.sink.push_back(chp::state(vector<chp::token>(1, chp::token(b.index)), arithmetic::state()));
 
 		if (syntax.reset >= 0)
 			result.reset = result.source;
@@ -266,7 +266,7 @@ chp::graph import_graph(const parse_chp::control &syntax, ucs::variable_set &var
 			}
 			else
 			{
-				repeat = arithmetic::operand(0, arithmetic::operand::invalid);
+				repeat = arithmetic::operand(0, arithmetic::operand::neutral);
 				break;
 			}
 		}
@@ -316,17 +316,17 @@ chp::graph import_graph(const parse_chp::control &syntax, ucs::variable_set &var
 
 		result.sink.clear();
 
-		if (!repeat.is_constant() || repeat.evaluate(vector<arithmetic::value>()).data != arithmetic::value::invalid)
+		if (!repeat.is_constant() || repeat.evaluate(arithmetic::state()).data != arithmetic::value::neutral)
 		{
 			petri::iterator guard = result.create(chp::transition(repeat));
 			result.connect(sm, guard);
 			petri::iterator arrow = result.create(chp::place());
 			result.connect(guard, arrow);
 
-			result.sink.push_back(chp::state(vector<chp::token>(1, chp::token(arrow.index)), vector<arithmetic::value>()));
+			result.sink.push_back(chp::state(vector<chp::token>(1, chp::token(arrow.index)), arithmetic::state()));
 		}
 
-		result.source.push_back(chp::state(vector<chp::token>(1, chp::token(sm.index)), vector<arithmetic::value>()));
+		result.source.push_back(chp::state(vector<chp::token>(1, chp::token(sm.index)), arithmetic::state()));
 
 
 		if (result.reset.size() > 0)

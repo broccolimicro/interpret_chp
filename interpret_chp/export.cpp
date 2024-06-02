@@ -111,7 +111,7 @@ parse_dot::graph export_graph(const chp::graph &g, ucs::variable_set &v, bool la
 	parse_chp::sequence result;
 	result.valid = true;
 
-	vector<petri::iterator> covered;
+	vector<petri::iterator> choiceed;
 
 	while (1)
 	{
@@ -139,11 +139,11 @@ parse_dot::graph export_graph(const chp::graph &g, ucs::variable_set &v, bool la
 		p.resize(unique(p.begin(), p.end()) - p.begin());
 
 
-		if (vector_intersection_size(covered, p) != 0 || p.size() > i.size())
+		if (vector_intersection_size(choiceed, p) != 0 || p.size() > i.size())
 			return result;
 		else
 		{
-			covered.insert(covered.end(), i.begin(), i.end());
+			choiceed.insert(choiceed.end(), i.begin(), i.end());
 			i = n;
 		}
 	}
@@ -188,7 +188,7 @@ parse::syntax *export_condition(vector<petri::iterator> &i, const chp::graph &g,
 			s.actions.erase(s.actions.begin());
 		}
 		else
-			result.branches.back().first = export_disjunction(boolean::cover(boolean::cube()), v);
+			result.branches.back().first = export_disjunction(boolean::choice(boolean::parallel()), v);
 
 		result.branches.back().second.branches.push_back(s);
 
@@ -477,7 +477,7 @@ parse_chp::parallel export_parallel(const chp::graph &g, const boolean::variable
 				}
 				else
 					// if it isn't then we need to write our own guard.
-					c->branches[i].first = export_expression(boolean::cube(), v);
+					c->branches[i].first = export_expression(boolean::parallel(), v);
 
 				// recurse
 				m.push_back(&c->branches[i].second);
