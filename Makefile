@@ -1,5 +1,5 @@
 NAME          = interpret_chp
-DEPEND        = interpret_arithmetic interpret_ucs parse_expression parse_ucs parse_dot parse_chp petri chp ucs arithmetic parse common
+DEPEND        = interpret_arithmetic interpret_ucs parse_expression parse_ucs parse_dot parse_astg parse_chp petri chp ucs arithmetic parse common
 
 SRCDIR        = $(NAME)
 TESTDIR       = tests
