@@ -226,7 +226,7 @@ void import_chp(const parse_dot::statement &syntax, chp::graph &g, ucs::variable
 
 				for (int i = 0; i < (int)n.size(); i++)
 					if (n[i].type == chp::transition::type)
-						g.transitions[n[i].index].local_action = c;
+						g.transitions[n[i].index].action = c;
 			}
 
 			if (i != 0)

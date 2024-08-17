@@ -17,7 +17,7 @@ pair<parse_astg::node, parse_astg::node> export_astg(parse_astg::graph &astg, co
 			pair<parse_astg::node, parse_astg::node> inout;
 
 			parse_expression::expression guard = export_expression(g.transitions[pos.index].guard, variables);
-			parse_expression::composition action = export_composition(g.transitions[pos.index].local_action, variables);
+			parse_expression::composition action = export_composition(g.transitions[pos.index].action, variables);
 			inout.first = parse_astg::node(guard, action, tlabel);
 			inout.second = inout.first;
 
@@ -121,55 +121,127 @@ parse_dot::node_id export_node_id(const chp::iterator &i)
 	return result;
 }
 
-parse_dot::attribute_list export_attribute_list(const chp::iterator i, const chp::graph &g, ucs::variable_set &variables, bool labels)
+parse_dot::attribute_list export_attribute_list(const chp::iterator i, const chp::graph &g, ucs::variable_set &variables, bool labels, bool notations)
 {
 	parse_dot::attribute_list result;
 	result.valid = true;
 	parse_dot::assignment_list sub_result;
 	sub_result.valid = true;
-	parse_dot::assignment label;
-	label.valid = true;
-	label.first = "label";
-	parse_dot::assignment circle;
-	circle.valid = true;
-	circle.first = "shape";
-	circle.second = "ellipse";
-	parse_dot::assignment plaintext;
-	plaintext.valid = true;
-	plaintext.first = "shape";
-	plaintext.second = "plaintext";
 
-	if (i.type == chp::place::type)
-	{
-		sub_result.as.push_back(circle);
-		label.second = "";
-	}
-	else
-	{
+	if (i.type == chp::place::type) {
+		parse_dot::assignment shape;
+		shape.valid = true;
+		shape.first = "shape";
+		if (g.places[i.index].arbiter) {
+			shape.second = "square";
+		} else {
+			shape.second = "circle";
+		}
+		sub_result.as.push_back(shape);
+
+		bool is_reset = false;
+		for (int j = 0; j < (int)g.reset.size() && !is_reset; j++) {
+			for (int k = 0; k < (int)g.reset[j].tokens.size() && !is_reset; k++) {
+				if (i.index == g.reset[j].tokens[k].index) {
+					is_reset = true;
+				}
+			}
+		}
+
+		if (is_reset) {
+			parse_dot::assignment marked;
+			marked.valid = true;
+			marked.first = "style";
+			marked.second = "filled";
+
+			sub_result.as.push_back(marked);
+			if (!notations) {
+				parse_dot::assignment color;
+				color.valid = true;
+				color.first = "fillcolor";
+				color.second = "black";
+				sub_result.as.push_back(color);
+
+				parse_dot::assignment peripheries;
+				peripheries.valid = true;
+				peripheries.first = "peripheries";
+				peripheries.second = "2";
+				sub_result.as.push_back(peripheries);
+
+				parse_dot::assignment size;
+				size.valid = true;
+				size.first = "width";
+				size.second = "0.15";
+				sub_result.as.push_back(size);
+			}
+		} else {
+			parse_dot::assignment size;
+			size.valid = true;
+			size.first = "width";
+			size.second = "0.18";
+			sub_result.as.push_back(size);
+		}
+	} else {
+		parse_dot::assignment plaintext;
+		plaintext.valid = true;
+		plaintext.first = "shape";
+		plaintext.second = "plaintext";
 		sub_result.as.push_back(plaintext);
-		label.second = export_composition(g.transitions[i.index].local_action, variables).to_string();
+
+		parse_dot::assignment action;
+		action.valid = true;
+		action.first = "label";
+		bool g_vacuous = g.transitions[i.index].guard.is_constant();
+		bool a_vacuous = g.transitions[i.index].action.is_tautology();
+
+		if (!g_vacuous && !a_vacuous) {
+			action.second = export_expression(g.transitions[i.index].guard, variables).to_string() + " -> " +
+			                export_composition(g.transitions[i.index].action, variables).to_string();
+		} else if (!g_vacuous) {
+			action.second = "[" + export_expression(g.transitions[i.index].guard, variables).to_string() + "]";
+		} else {
+			action.second = export_composition(g.transitions[i.index].action, variables).to_string();
+		}
+
+		if (notations) {
+			if (action.second != "") {
+				action.second += "\n";
+			}
+			action.second += "[";
+			for (int j = 0; j < (int)g.transitions[i.index].groups[petri::parallel].size(); j++) {
+				if (j != 0) {
+					action.second += ",";
+				}
+				action.second += g.transitions[i.index].groups[petri::parallel][j].to_string();
+			}
+			action.second += "]";
+		}
+		sub_result.as.push_back(action);
 	}
 
-	if (labels)
-		label.second = (i.type == chp::place::type ? "P" : "T") + to_string(i.index) + ":" + label.second;
-
-	sub_result.as.push_back(label);
+	if (labels) {
+		parse_dot::assignment label;
+		label.valid = true;
+		label.first = "xlabel";
+		label.second = (i.type == chp::place::type ? "P" : "T") + to_string(i.index);
+		sub_result.as.push_back(label);
+	}
 
 	result.attributes.push_back(sub_result);
 	return result;
 }
 
-parse_dot::statement export_statement(const chp::iterator &i, const chp::graph &g, ucs::variable_set &v, bool labels)
+parse_dot::statement export_statement(const chp::iterator &i, const chp::graph &g, ucs::variable_set &v, bool labels, bool notations)
 {
 	parse_dot::statement result;
 	result.valid = true;
 	result.statement_type = "node";
 	result.nodes.push_back(new parse_dot::node_id(export_node_id(i)));
-	result.attributes = export_attribute_list(i, g, v, labels);
+	result.attributes = export_attribute_list(i, g, v, labels, notations);
 	return result;
 }
 
-parse_dot::statement export_statement(const pair<int, int> &a, const chp::graph &g, ucs::variable_set &v, bool labels)
+parse_dot::statement export_statement(const pair<int, int> &a, const chp::graph &g, ucs::variable_set &v, bool labels, bool notations)
 {
 	parse_dot::statement result;
 	result.valid = true;
@@ -192,7 +264,7 @@ parse_dot::statement export_statement(const pair<int, int> &a, const chp::graph 
 	return result;
 }
 
-parse_dot::graph export_graph(const chp::graph &g, ucs::variable_set &v, bool labels)
+parse_dot::graph export_graph(const chp::graph &g, ucs::variable_set &v, bool labels, bool notations)
 {
 	parse_dot::graph result;
 	result.valid = true;
@@ -200,14 +272,14 @@ parse_dot::graph export_graph(const chp::graph &g, ucs::variable_set &v, bool la
 	result.type = "digraph";
 
 	for (int i = 0; i < (int)g.places.size(); i++)
-		result.statements.push_back(export_statement(chp::iterator(chp::place::type, i), g, v, labels));
+		result.statements.push_back(export_statement(chp::iterator(chp::place::type, i), g, v, labels, notations));
 
 	for (int i = 0; i < (int)g.transitions.size(); i++)
-		result.statements.push_back(export_statement(chp::iterator(chp::transition::type, i), g, v, labels));
+		result.statements.push_back(export_statement(chp::iterator(chp::transition::type, i), g, v, labels, notations));
 
 	for (int i = 0; i < 2; i++)
 		for (int j = 0; j < (int)g.arcs[i].size(); j++)
-			result.statements.push_back(export_statement(pair<int, int>(i, j), g, v, labels));
+			result.statements.push_back(export_statement(pair<int, int>(i, j), g, v, labels, notations));
 
 	return result;
 }
@@ -406,13 +478,13 @@ parse_chp::sequence export_sequence(vector<petri::iterator> nodes, map<petri::it
 		}
 		else if (nodes[j].type == chp::transition::type && g.transitions[nodes[j].index].behavior == chp::transition::active)
 		{
-			stack.back()->actions.push_back(new parse_boolean::assignment(export_composition(g.transitions[nodes[j].index].local_action, v)));
+			stack.back()->actions.push_back(new parse_boolean::assignment(export_composition(g.transitions[nodes[j].index].action, v)));
 			stack.back()->actions.back()->start = nodes[j].index;
 			stack.back()->actions.back()->end = nodes[j].index;
 		}
 		else if (nodes[j].type == chp::transition::type && g.transitions[nodes[j].index].behavior == chp::transition::passive)
 		{
-			stack.back()->actions.push_back(new parse_boolean::guard(export_expression_xfactor(g.transitions[nodes[j].index].local_action, v)));
+			stack.back()->actions.push_back(new parse_boolean::guard(export_expression_xfactor(g.transitions[nodes[j].index].action, v)));
 			stack.back()->actions.back()->start = nodes[j].index;
 			stack.back()->actions.back()->end = nodes[j].index;
 		}
@@ -639,88 +711,96 @@ parse_chp::parallel export_parallel(const chp::graph &g, const boolean::variable
 	return wrapper;
 }*/
 
-/*string export_node(petri::iterator i, const chp::graph &g, const ucs::variable_set &v)
+string export_node(petri::iterator i, const chp::graph &g, const ucs::variable_set &v)
 {
-	vector<petri::iterator> n = g.next(i);
-	vector<petri::iterator> p = g.prev(i);
-	string result = "";
-
-	if (i.type == chp::transition::type)
-	{
-		vector<petri::iterator> pp;
-		vector<petri::iterator> np;
-
-		//bool proper_nest = true;
-		for (int j = 0; j < (int)p.size(); j++)
-		{
-			vector<petri::iterator> tmp = g.prev(p[j]);
-			pp.insert(pp.begin(), tmp.begin(), tmp.end());
-			tmp = g.next(p[j]);
-			np.insert(np.begin(), tmp.begin(), tmp.end());
-			//if (p.size() > 1 && tmp.size() > 1)
-			//	proper_nest = false;
-		}
-
-		sort(pp.begin(), pp.end());
-		pp.resize(unique(pp.begin(), pp.end()) - pp.begin());
-		sort(np.begin(), np.end());
-		np.resize(unique(np.begin(), np.end()) - np.begin());
-
-		n = np;
-		p = pp;
+	vector<petri::iterator> n, p;
+	if (i.type == chp::place::type) {
+		p.push_back(i);
+		n.push_back(i);
+	} else {
+		p = g.prev(i);
+		n = g.next(i);
 	}
 
-	if (p.size() > 1)
+	string result = "";
+
+	if (p.size() > 1) {
+		result += "(...";
+	}
+	for (int j = 0; j < (int)p.size(); j++)
 	{
-		result = "[...";
-		for (int j = 0; j < (int)p.size(); j++)
-		{
+		if (j != 0)
+			result += "||...";
+
+		vector<petri::iterator> pp = g.prev(p[j]);
+		if (pp.size() > 1) {
+			result += "[...";
+		}
+		for (int j = 0; j < (int)pp.size(); j++) {
 			if (j != 0)
 				result += "[]...";
 
-			if (g.transitions[p[j].index].behavior == chp::transition::active)
-				result += export_composition(g.transitions[p[j].index].local_action, v).to_string();
-			else
-				result += "[" + export_expression_xfactor(g.transitions[p[j].index].local_action, v).to_string() + "]";
+			//if (!g.transitions[pp[j].index].guard.is_tautology())
+				result += "[" + export_expression(g.transitions[pp[j].index].guard, v).to_string() + "]; ";
+			
+			result += export_composition(g.transitions[pp[j].index].action, v).to_string();
 		}
-		result += "] ; ";
+		if (pp.size() > 1) {
+			result += "]";
+		}
 	}
-	else if (p.size() == 1 && g.transitions[p[0].index].behavior == chp::transition::active)
-		result =  export_composition(g.transitions[p[0].index].local_action, v).to_string() + " ; ";
-	else if (p.size() == 1 && g.next(g.prev(p[0])).size() > 1)
-		result = "[" + export_expression_xfactor(g.transitions[p[0].index].local_action, v).to_string() + " -> ";
-	else if (p.size() == 1)
-		result = "[" + export_expression_xfactor(g.transitions[p[0].index].local_action, v).to_string() + "] ; ";
+	if (p.size() > 1) {
+		result += ")";
+	}
 
-	if (n.size() > 1)
+
+
+	if (i.type == chp::place::type) {
+		result += "; <here> ";
+	} else {
+		//if (not g.transitions[i.index].guard.is_tautology()) {
+			result += ";[" + export_expression(g.transitions[i.index].guard, v).to_string() + "]; <here> ";
+		//} else {
+		//	result += "; <here> ";
+		//}
+
+		result +=  export_composition(g.transitions[i.index].action, v).to_string() + ";";
+	}
+
+
+
+	if (n.size() > 1) {
+		result += "(";
+	}
+	for (int j = 0; j < (int)n.size(); j++)
 	{
-		result += "[";
-		for (int j = 0; j < (int)n.size(); j++)
-		{
-			if (j != 0)
-				result += "[]";
+		if (j != 0)
+			result += "...||";
 
-			if (n[j] == i)
-				result += " ";
-
-			if (g.transitions[n[j].index].behavior == chp::transition::active)
-				result += "1->" + export_composition(g.transitions[n[j].index].local_action, v).to_string() + "...";
-			else
-				result += export_expression_xfactor(g.transitions[n[j].index].local_action, v).to_string() + "->...";
-
-			if (n[j] == i)
-				result += " ";
+		vector<petri::iterator> nn = g.next(n[j]);
+		if (nn.size() > 1) {
+			result += "[";
 		}
-		result += "]";
+		for (int j = 0; j < (int)nn.size(); j++) {
+			if (j != 0)
+				result += "...[]";
+
+			//if (!g.transitions[nn[j].index].guard.is_tautology())
+				result += export_expression(g.transitions[nn[j].index].guard, v).to_string() + "->";
+			//else
+			//	result += "1->";
+			
+			result += export_composition(g.transitions[nn[j].index].action, v).to_string();
+		}
+		if (nn.size() > 1) {
+			result += "...]";
+		}
 	}
-	else if (n.size() == 1 && g.transitions[n[0].index].behavior == chp::transition::active)
-		result += export_composition(g.transitions[n[0].index].local_action, v).to_string();
-	else if (n.size() == 1 && g.prev(g.next(n[0])).size() > 1)
-		result += export_expression_xfactor(g.transitions[n[0].index].local_action, v).to_string() + "]";
-	else if (n.size() == 1)
-		result += "[" + export_expression_xfactor(g.transitions[n[0].index].local_action, v).to_string() + "]";
+	if (n.size() > 1) {
+		result += "...)";
+	}
 
 	return result;
-}*/
+}
 
 }

@@ -29,10 +29,10 @@ parse_astg::graph export_astg(const chp::graph &g, ucs::variable_set &variables)
 // DOT
 
 parse_dot::node_id export_node_id(const chp::iterator &i);
-parse_dot::attribute_list export_attribute_list(const chp::iterator i, const chp::graph &g, ucs::variable_set &variables, bool labels = false);
-parse_dot::statement export_statement(const chp::iterator &i, const chp::graph &g, ucs::variable_set &v, bool labels = false);
-parse_dot::statement export_statement(const pair<int, int> &a, const chp::graph &g, ucs::variable_set &v, bool labels);
-parse_dot::graph export_graph(const chp::graph &g, ucs::variable_set &v, bool labels = false);
+parse_dot::attribute_list export_attribute_list(const chp::iterator i, const chp::graph &g, ucs::variable_set &variables, bool labels = false, bool notations = false);
+parse_dot::statement export_statement(const chp::iterator &i, const chp::graph &g, ucs::variable_set &v, bool labels = false, bool notations = false);
+parse_dot::statement export_statement(const pair<int, int> &a, const chp::graph &g, ucs::variable_set &v, bool labels = false, bool notations = false);
+parse_dot::graph export_graph(const chp::graph &g, ucs::variable_set &v, bool labels = false, bool notations = false);
 
 // CHP
 
@@ -41,6 +41,7 @@ parse_chp::parallel export_parallel(vector<chp::iterator> &i, const chp::graph &
 parse::syntax *export_condition(vector<chp::iterator> &i, const chp::graph &g, boolean::variable_set &v);*/
 
 /*parse_chp::parallel export_parallel(const chp::graph &g, const boolean::variable_set &v);*/
-//string export_node(petri::iterator i, const chp::graph &g, const ucs::variable_set &v);
+
+string export_node(petri::iterator i, const chp::graph &g, const ucs::variable_set &v);
 
 }
