@@ -192,7 +192,7 @@ parse_dot::attribute_list export_attribute_list(const chp::iterator i, const chp
 		action.valid = true;
 		action.first = "label";
 		bool g_vacuous = g.transitions[i.index].guard.is_constant();
-		bool a_vacuous = g.transitions[i.index].action.is_tautology();
+		bool a_vacuous = g.transitions[i.index].action.is_vacuous();
 
 		if (!g_vacuous && !a_vacuous) {
 			action.second = export_expression(g.transitions[i.index].guard, variables).to_string() + " -> " +
@@ -711,6 +711,42 @@ parse_chp::parallel export_parallel(const chp::graph &g, const boolean::variable
 	return wrapper;
 }*/
 
+string export_transition(const chp::graph &g, const ucs::variable_set &v, petri::iterator i, bool is_guard, bool here) {
+	string result;
+
+	bool render_guard = not g.transitions[i.index].guard.is_valid();
+	bool render_action = not g.transitions[i.index].action.is_vacuous();
+
+	if (is_guard) {
+		if (render_guard) {
+			result += export_expression(g.transitions[i.index].guard, v).to_string() + "->";
+		} else {
+			result += "vdd->";
+		}
+	} else {
+		if (render_guard) {
+			result += "[" + export_expression(g.transitions[i.index].guard, v).to_string() + "]";
+		}
+
+		if (render_guard and render_action) {
+			result += ";";
+		}
+	}
+
+	if (here) {
+		result += "  <here>  ";
+	}
+
+	if (render_action) {
+		result += export_composition(g.transitions[i.index].action, v).to_string();
+	}
+
+	if ((is_guard or not render_guard) and not render_action) {
+		result += "skip";
+	}
+	return result;
+}
+
 string export_node(petri::iterator i, const chp::graph &g, const ucs::variable_set &v)
 {
 	vector<petri::iterator> n, p;
@@ -740,10 +776,7 @@ string export_node(petri::iterator i, const chp::graph &g, const ucs::variable_s
 			if (j != 0)
 				result += "[]...";
 
-			//if (!g.transitions[pp[j].index].guard.is_tautology())
-				result += "[" + export_expression(g.transitions[pp[j].index].guard, v).to_string() + "]; ";
-			
-			result += export_composition(g.transitions[pp[j].index].action, v).to_string();
+			result += export_transition(g, v, pp[j], false, false);
 		}
 		if (pp.size() > 1) {
 			result += "]";
@@ -758,13 +791,7 @@ string export_node(petri::iterator i, const chp::graph &g, const ucs::variable_s
 	if (i.type == chp::place::type) {
 		result += "; <here> ";
 	} else {
-		//if (not g.transitions[i.index].guard.is_tautology()) {
-			result += ";[" + export_expression(g.transitions[i.index].guard, v).to_string() + "]; <here> ";
-		//} else {
-		//	result += "; <here> ";
-		//}
-
-		result +=  export_composition(g.transitions[i.index].action, v).to_string() + ";";
+		result += ";" + export_transition(g, v, i, false, true) + ";";
 	}
 
 
@@ -785,12 +812,8 @@ string export_node(petri::iterator i, const chp::graph &g, const ucs::variable_s
 			if (j != 0)
 				result += "...[]";
 
-			//if (!g.transitions[nn[j].index].guard.is_tautology())
-				result += export_expression(g.transitions[nn[j].index].guard, v).to_string() + "->";
-			//else
-			//	result += "1->";
-			
-			result += export_composition(g.transitions[nn[j].index].action, v).to_string();
+
+			result += export_transition(g, v, nn[j], nn.size() > 1, false);
 		}
 		if (nn.size() > 1) {
 			result += "...]";
