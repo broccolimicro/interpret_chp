@@ -3,3 +3,4 @@
 *.d
 *.a
 build
+test
