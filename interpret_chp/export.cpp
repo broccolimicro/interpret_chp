@@ -208,11 +208,11 @@ parse_dot::attribute_list export_attribute_list(const chp::iterator i, const chp
 				action.second += "\n";
 			}
 			action.second += "[";
-			for (int j = 0; j < (int)g.transitions[i.index].groups[petri::parallel].size(); j++) {
+			for (int j = 0; j < (int)g.transitions[i.index].splits[petri::parallel].size(); j++) {
 				if (j != 0) {
 					action.second += ",";
 				}
-				action.second += g.transitions[i.index].groups[petri::parallel][j].to_string();
+				action.second += g.transitions[i.index].splits[petri::parallel][j].to_string();
 			}
 			action.second += "]";
 		}
