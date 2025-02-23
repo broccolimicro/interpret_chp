@@ -445,4 +445,192 @@ chp::graph import_chp(const parse_chp::control &syntax, ucs::variable_set &varia
 	return result;
 }
 
+
+
+
+
+chp::graph import_chp(const parse_cog::composition &syntax, ucs::variable_set &variables, arithmetic::expression &covered, bool &hasRepeat, int default_id, tokenizer *tokens, bool auto_define) {
+	chp::graph result;
+
+	bool arbiter = false;
+	bool synchronizer = false;
+
+	int composition = petri::parallel;
+	if (syntax.level == parse_cog::composition::SEQUENCE or syntax.level == parse_cog::composition::INTERNAL_SEQUENCE) {
+		composition = petri::sequence;
+	} else if (syntax.level == parse_cog::composition::CONDITION) {
+		composition = petri::choice;
+	} else if (syntax.level == parse_cog::composition::CHOICE) {
+		composition = petri::choice;
+		arbiter = true;
+	} else if (syntax.level == parse_cog::composition::PARALLEL) {
+		composition = petri::parallel;
+	}
+
+	bool subRepeat = false;
+	covered = (composition == petri::choice ? 0 : 1);
+	for (int i = 0; i < (int)syntax.branches.size(); i++)
+	{
+		if (syntax.branches[i].sub != nullptr and syntax.branches[i].sub->valid) {
+			arithmetic::expression subcovered;
+			result.merge(composition, import_chp(*syntax.branches[i].sub, variables, subcovered, subRepeat, default_id, tokens, auto_define));
+			if (composition == petri::choice) {
+				covered = covered | subcovered;
+			} else if (composition == petri::parallel) {
+				covered = covered & subcovered;
+			} 
+		} else if (syntax.branches[i].ctrl != nullptr and syntax.branches[i].ctrl->valid) {
+			if (syntax.branches[i].ctrl->kind == "while") {
+				subRepeat = true;
+			}
+			result.merge(composition, import_chp(*syntax.branches[i].ctrl, variables, default_id, tokens, auto_define));
+			arithmetic::expression subcovered = true;
+			if (syntax.branches[i].ctrl->guard.valid) {
+				subcovered = import_expression(syntax.branches[i].ctrl->guard, variables, default_id, tokens, auto_define);
+			}
+			if (composition == petri::choice) {
+				covered = covered | subcovered;
+			} else if (composition == petri::parallel) {
+				covered = covered & subcovered;
+			}
+		} else if (syntax.branches[i].assign.valid) {
+			result.merge(composition, import_chp(syntax.branches[i].assign, variables, default_id, tokens, auto_define));
+			if (composition == petri::choice) {
+				covered = 1;
+			}
+		}
+	}
+
+	if (syntax.branches.size() == 0)
+	{
+		petri::iterator b = result.create(chp::place());
+
+		result.source.push_back(chp::state(vector<petri::token>(1, petri::token(b.index)), arithmetic::state()));
+		result.sink.push_back(chp::state(vector<petri::token>(1, petri::token(b.index)), arithmetic::state()));
+	}
+
+	/*if ((int)syntax.branches.size() > 1) {
+		cout << "BEFORE" << endl;
+		cout << syntax.to_string() << endl << endl;
+		cout << "Source: ";
+		for (auto i = result.source.begin(); i != result.source.end(); i++) {
+			for (auto j = i->tokens.begin(); j != i->tokens.end(); j++) {
+				cout << "p" << j->index << " ";
+			}
+			cout << endl;
+		}
+		cout << endl;
+		cout << "Sink: ";
+		for (auto i = result.sink.begin(); i != result.sink.end(); i++) {
+			for (auto j = i->tokens.begin(); j != i->tokens.end(); j++) {
+				cout << "p" << j->index << " ";
+			}
+			cout << endl;
+		}
+		cout << endl;
+
+		cout << export_astg(result, variables).to_string() << endl << endl;
+	}*/
+
+	if (result.source.size() > 1 and composition == choice) {
+		result.source = result.consolidate(result.source);
+	}
+
+	if ((arbiter or synchronizer) and (int)syntax.branches.size() > 1) {
+		for (auto i = result.source.begin(); i != result.source.end(); i++) {
+			for (auto j = i->tokens.begin(); j != i->tokens.end(); j++) {
+				if (arbiter) {
+					result.places[j->index].arbiter = true;
+				}
+				if (synchronizer) {
+					//result.places[j->index].synchronizer = true;
+				}
+			}
+		}
+	}
+
+	if (subRepeat and composition == choice and not arbiter and not result.source.empty()) {
+		arithmetic::expression skipCond = ~covered;
+		if (not skipCond.is_null()) {
+			petri::iterator arrow = result.create(chp::place());
+			for (auto i = result.source.begin(); i != result.source.end(); i++) {
+				petri::iterator skip = result.create(chp::transition(skipCond, arithmetic::parallel()));
+				for (auto j = i->tokens.begin(); j != i->tokens.end(); j++) {
+					result.connect(petri::iterator(place::type, j->index), skip);
+				}
+				result.connect(skip, arrow);
+			}
+
+			for (auto i = result.sink.begin(); i != result.sink.end(); i++) {
+				petri::iterator skip = result.create(chp::transition(true, arithmetic::parallel()));
+				for (auto j = i->tokens.begin(); j != i->tokens.end(); j++) {
+					result.connect(petri::iterator(place::type, j->index), skip);
+				}
+				result.connect(skip, arrow);
+			}
+
+			result.sink = vector<chp::state>(1, chp::state(vector<petri::token>(1, petri::token(arrow.index)), arithmetic::state()));
+		}
+		subRepeat = false;
+	}
+
+	if (subRepeat) {
+		hasRepeat = true;
+	}
+
+	/*if ((int)syntax.branches.size() > 1) {
+		cout << "AFTER" << endl;
+		cout << "Source: ";
+		for (auto i = result.source.begin(); i != result.source.end(); i++) {
+			for (auto j = i->tokens.begin(); j != i->tokens.end(); j++) {
+				cout << "p" << j->index << " ";
+			}
+			cout << endl;
+		}
+		cout << endl;
+		cout << "Sink: ";
+		for (auto i = result.sink.begin(); i != result.sink.end(); i++) {
+			for (auto j = i->tokens.begin(); j != i->tokens.end(); j++) {
+				cout << "p" << j->index << " ";
+			}
+			cout << endl;
+		}
+		cout << endl;
+
+		cout << export_astg(result, variables).to_string() << endl << endl;
+	}*/
+
+	return result;
+}
+
+chp::graph import_chp(const parse_cog::control &syntax, ucs::variable_set &variables, int default_id, tokenizer *tokens, bool auto_define)
+{
+	if (syntax.region != "") {
+		default_id = atoi(syntax.region.c_str());
+	}
+
+	chp::graph result;
+
+	if (syntax.guard.valid/* and import_expression(syntax.guard, variables, default_id, tokens, auto_define) != 1*/) {
+		result.merge(petri::sequence, import_chp(syntax.guard, variables, default_id, tokens, auto_define));
+	}
+	if (syntax.action.valid) {
+		arithmetic::expression covered;
+		bool hasRepeat = false;
+		result.merge(petri::sequence, import_chp(syntax.action, variables, covered, hasRepeat, default_id, tokens, auto_define));
+	}
+
+	if (syntax.kind == "while" and not result.source.empty()) {
+		result.consolidate(result.sink, result.source, true);
+
+		result.sink.clear();
+		if (result.reset.size() > 0) {
+			result.source = result.reset;
+			result.reset.clear();
+		}
+	}
+
+	return result;
+}
+
 }

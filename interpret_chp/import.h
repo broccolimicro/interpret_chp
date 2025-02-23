@@ -19,6 +19,9 @@
 #include <parse_chp/composition.h>
 #include <parse_chp/control.h>
 
+#include <parse_cog/composition.h>
+#include <parse_cog/control.h>
+
 #include <parse_expression/expression.h>
 #include <parse_expression/assignment.h>
 
@@ -46,5 +49,10 @@ chp::graph import_chp(const parse_expression::expression &syntax, ucs::variable_
 chp::graph import_chp(const parse_expression::assignment &syntax, ucs::variable_set &variables, int default_id, tokenizer *tokens, bool auto_define);
 chp::graph import_chp(const parse_chp::composition &syntax, ucs::variable_set &variables, int default_id, tokenizer *tokens, bool auto_define);
 chp::graph import_chp(const parse_chp::control &syntax, ucs::variable_set &variables, int default_id, tokenizer *tokens, bool auto_define);
+
+// COG
+
+chp::graph import_chp(const parse_cog::composition &syntax, ucs::variable_set &variables, arithmetic::expression &covered, bool &hasRepeat, int default_id, tokenizer *tokens, bool auto_define);
+chp::graph import_chp(const parse_cog::control &syntax, ucs::variable_set &variables, int default_id, tokenizer *tokens, bool auto_define);
 
 }
