@@ -1,6 +1,6 @@
 *.o
-*.o
-*.d
 *.a
+*.so
 build
 test
+coverage*
