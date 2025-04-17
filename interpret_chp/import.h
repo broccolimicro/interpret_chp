@@ -52,7 +52,7 @@ chp::graph import_chp(const parse_chp::control &syntax, ucs::variable_set &varia
 
 // COG
 
-chp::graph import_chp(const parse_cog::composition &syntax, ucs::variable_set &variables, arithmetic::expression &covered, bool &hasRepeat, int default_id, tokenizer *tokens, bool auto_define);
+chp::graph import_chp(const parse_cog::composition &syntax, ucs::variable_set &variables, arithmetic::Expression &covered, bool &hasRepeat, int default_id, tokenizer *tokens, bool auto_define);
 chp::graph import_chp(const parse_cog::control &syntax, ucs::variable_set &variables, int default_id, tokenizer *tokens, bool auto_define);
 
 }

@@ -31,15 +31,15 @@ chp::iterator import_chp(const parse_astg::node &syntax, ucs::variable_set &vari
 	auto created = ids.insert(pair<string, chp::iterator>(syntax.to_string(), i));
 	if (created.second && i.type == chp::transition::type)
 	{
-		arithmetic::expression guard(true);
-		arithmetic::choice action;
+		arithmetic::Expression guard(true);
+		arithmetic::Choice action;
 		if (syntax.guard.valid) {
 			guard = import_expression(syntax.guard, variables, 0, tokens, false);
 		}
 		if (syntax.assign.valid) {
 			action = import_choice(syntax.assign, variables, 0, tokens, false);
 		} else {
-			action.terms.push_back(arithmetic::parallel());
+			action.terms.push_back(arithmetic::Parallel());
 		}
 
 		g.create_at(chp::transition(guard, action), i.index);
@@ -210,7 +210,7 @@ void import_chp(const parse_dot::statement &syntax, chp::graph &g, ucs::variable
 			if (attr == attributes.end())
 				attr = globals[syntax.statement_type].find("label");
 
-			arithmetic::choice c;
+			arithmetic::Choice c;
 			if (attr != attributes.end() && attr != globals[syntax.statement_type].end() && attr->second.size() != 0)
 			{
 				tokenizer temp;
@@ -261,14 +261,14 @@ chp::graph import_chp(const parse_expression::expression &syntax, ucs::variable_
 {
 	chp::graph result;
 	petri::iterator b = result.create(chp::place());
-	petri::iterator t = result.create(chp::transition(import_expression(syntax, variables, default_id, tokens, auto_define), arithmetic::choice(arithmetic::parallel())));
+	petri::iterator t = result.create(chp::transition(import_expression(syntax, variables, default_id, tokens, auto_define), arithmetic::Choice(arithmetic::Parallel())));
 	petri::iterator e = result.create(chp::place());
 
 	result.connect(b, t);
 	result.connect(t, e);
 
-	result.source.push_back(chp::state(vector<chp::token>(1, chp::token(b.index)), arithmetic::state()));
-	result.sink.push_back(chp::state(vector<chp::token>(1, chp::token(e.index)), arithmetic::state()));
+	result.source.push_back(chp::state(vector<chp::token>(1, chp::token(b.index)), arithmetic::State()));
+	result.sink.push_back(chp::state(vector<chp::token>(1, chp::token(e.index)), arithmetic::State()));
 	return result;
 }
 
@@ -276,14 +276,14 @@ chp::graph import_chp(const parse_expression::assignment &syntax, ucs::variable_
 {
 	chp::graph result;
 	petri::iterator b = result.create(chp::place());
-	petri::iterator t = result.create(chp::transition(arithmetic::expression(true), import_action(syntax, variables, default_id, tokens, auto_define)));
+	petri::iterator t = result.create(chp::transition(arithmetic::Expression(true), import_action(syntax, variables, default_id, tokens, auto_define)));
 	petri::iterator e = result.create(chp::place());
 
 	result.connect(b, t);
 	result.connect(t, e);
 
-	result.source.push_back(chp::state(vector<chp::token>(1, chp::token(b.index)), arithmetic::state()));
-	result.sink.push_back(chp::state(vector<chp::token>(1, chp::token(e.index)), arithmetic::state()));
+	result.source.push_back(chp::state(vector<chp::token>(1, chp::token(b.index)), arithmetic::State()));
+	result.sink.push_back(chp::state(vector<chp::token>(1, chp::token(e.index)), arithmetic::State()));
 	return result;
 }
 
@@ -319,8 +319,8 @@ chp::graph import_chp(const parse_chp::composition &syntax, ucs::variable_set &v
 	{
 		petri::iterator b = result.create(chp::place());
 
-		result.source.push_back(chp::state(vector<chp::token>(1, chp::token(b.index)), arithmetic::state()));
-		result.sink.push_back(chp::state(vector<chp::token>(1, chp::token(b.index)), arithmetic::state()));
+		result.source.push_back(chp::state(vector<chp::token>(1, chp::token(b.index)), arithmetic::State()));
+		result.sink.push_back(chp::state(vector<chp::token>(1, chp::token(b.index)), arithmetic::State()));
 
 		if (syntax.reset >= 0)
 			result.reset = result.source;
@@ -339,7 +339,7 @@ chp::graph import_chp(const parse_chp::control &syntax, ucs::variable_set &varia
 	for (int i = 0; i < (int)syntax.branches.size(); i++)
 	{
 		chp::graph branch;
-		if (syntax.branches[i].first.valid and not import_expression(syntax.branches[i].first, variables, default_id, tokens, auto_define).is_valid())
+		if (syntax.branches[i].first.valid and not import_expression(syntax.branches[i].first, variables, default_id, tokens, auto_define).isValid())
 			branch.merge(petri::sequence, import_chp(syntax.branches[i].first, variables, default_id, tokens, auto_define));
 		if (syntax.branches[i].second.valid)
 			branch.merge(petri::sequence, import_chp(syntax.branches[i].second, variables, default_id, tokens, auto_define));
@@ -373,7 +373,7 @@ chp::graph import_chp(const parse_chp::control &syntax, ucs::variable_set &varia
 		}
 
 		result.source.clear();
-		result.source.push_back(chp::state(vector<chp::token>(1, chp::token(sm.index)), arithmetic::state()));
+		result.source.push_back(chp::state(vector<chp::token>(1, chp::token(sm.index)), arithmetic::State()));
 	}
 
 	if (!syntax.deterministic)
@@ -408,7 +408,7 @@ chp::graph import_chp(const parse_chp::control &syntax, ucs::variable_set &varia
 
 		result.sink.clear();
 
-		arithmetic::expression repeat(true);
+		arithmetic::Expression repeat(true);
 		for (int i = 0; i < (int)syntax.branches.size(); i++)
 		{
 			if (syntax.branches[i].first.valid)
@@ -425,14 +425,14 @@ chp::graph import_chp(const parse_chp::control &syntax, ucs::variable_set &varia
 			}
 		}
 
-		if (!repeat.is_neutral())
+		if (!repeat.isNeutral())
 		{
-			chp::iterator guard = result.create(chp::transition(repeat, arithmetic::choice(arithmetic::parallel())));
+			chp::iterator guard = result.create(chp::transition(repeat, arithmetic::Choice(arithmetic::Parallel())));
 			result.connect(sm, guard);
 			chp::iterator arrow = result.create(chp::place());
 			result.connect(guard, arrow);
 
-			result.sink.push_back(chp::state(vector<chp::token>(1, chp::token(arrow.index)), arithmetic::state()));
+			result.sink.push_back(chp::state(vector<chp::token>(1, chp::token(arrow.index)), arithmetic::State()));
 		}
 
 		if (result.reset.size() > 0)
@@ -449,7 +449,7 @@ chp::graph import_chp(const parse_chp::control &syntax, ucs::variable_set &varia
 
 
 
-chp::graph import_chp(const parse_cog::composition &syntax, ucs::variable_set &variables, arithmetic::expression &covered, bool &hasRepeat, int default_id, tokenizer *tokens, bool auto_define) {
+chp::graph import_chp(const parse_cog::composition &syntax, ucs::variable_set &variables, arithmetic::Expression &covered, bool &hasRepeat, int default_id, tokenizer *tokens, bool auto_define) {
 	chp::graph result;
 
 	bool arbiter = false;
@@ -472,7 +472,7 @@ chp::graph import_chp(const parse_cog::composition &syntax, ucs::variable_set &v
 	for (int i = 0; i < (int)syntax.branches.size(); i++)
 	{
 		if (syntax.branches[i].sub != nullptr and syntax.branches[i].sub->valid) {
-			arithmetic::expression subcovered;
+			arithmetic::Expression subcovered;
 			result.merge(composition, import_chp(*syntax.branches[i].sub, variables, subcovered, subRepeat, default_id, tokens, auto_define));
 			if (composition == petri::choice) {
 				covered = covered | subcovered;
@@ -484,7 +484,7 @@ chp::graph import_chp(const parse_cog::composition &syntax, ucs::variable_set &v
 				subRepeat = true;
 			}
 			result.merge(composition, import_chp(*syntax.branches[i].ctrl, variables, default_id, tokens, auto_define));
-			arithmetic::expression subcovered = true;
+			arithmetic::Expression subcovered = arithmetic::Operand(true);
 			if (syntax.branches[i].ctrl->guard.valid) {
 				subcovered = import_expression(syntax.branches[i].ctrl->guard, variables, default_id, tokens, auto_define);
 			}
@@ -505,8 +505,8 @@ chp::graph import_chp(const parse_cog::composition &syntax, ucs::variable_set &v
 	{
 		petri::iterator b = result.create(chp::place());
 
-		result.source.push_back(chp::state(vector<petri::token>(1, petri::token(b.index)), arithmetic::state()));
-		result.sink.push_back(chp::state(vector<petri::token>(1, petri::token(b.index)), arithmetic::state()));
+		result.source.push_back(chp::state(vector<petri::token>(1, petri::token(b.index)), arithmetic::State()));
+		result.sink.push_back(chp::state(vector<petri::token>(1, petri::token(b.index)), arithmetic::State()));
 	}
 
 	/*if ((int)syntax.branches.size() > 1) {
@@ -550,11 +550,11 @@ chp::graph import_chp(const parse_cog::composition &syntax, ucs::variable_set &v
 	}
 
 	if (subRepeat and composition == choice and not arbiter and not result.source.empty()) {
-		arithmetic::expression skipCond = ~covered;
-		if (not skipCond.is_null()) {
+		arithmetic::Expression skipCond = ~covered;
+		if (not skipCond.isNull()) {
 			petri::iterator arrow = result.create(chp::place());
 			for (auto i = result.source.begin(); i != result.source.end(); i++) {
-				petri::iterator skip = result.create(chp::transition(skipCond, arithmetic::parallel()));
+				petri::iterator skip = result.create(chp::transition(skipCond, arithmetic::Parallel()));
 				for (auto j = i->tokens.begin(); j != i->tokens.end(); j++) {
 					result.connect(petri::iterator(place::type, j->index), skip);
 				}
@@ -562,14 +562,14 @@ chp::graph import_chp(const parse_cog::composition &syntax, ucs::variable_set &v
 			}
 
 			for (auto i = result.sink.begin(); i != result.sink.end(); i++) {
-				petri::iterator skip = result.create(chp::transition(true, arithmetic::parallel()));
+				petri::iterator skip = result.create(chp::transition(arithmetic::Operand(true), arithmetic::Parallel()));
 				for (auto j = i->tokens.begin(); j != i->tokens.end(); j++) {
 					result.connect(petri::iterator(place::type, j->index), skip);
 				}
 				result.connect(skip, arrow);
 			}
 
-			result.sink = vector<chp::state>(1, chp::state(vector<petri::token>(1, petri::token(arrow.index)), arithmetic::state()));
+			result.sink = vector<chp::state>(1, chp::state(vector<petri::token>(1, petri::token(arrow.index)), arithmetic::State()));
 		}
 		subRepeat = false;
 	}
@@ -615,7 +615,7 @@ chp::graph import_chp(const parse_cog::control &syntax, ucs::variable_set &varia
 		result.merge(petri::sequence, import_chp(syntax.guard, variables, default_id, tokens, auto_define));
 	}
 	if (syntax.action.valid) {
-		arithmetic::expression covered;
+		arithmetic::Expression covered;
 		bool hasRepeat = false;
 		result.merge(petri::sequence, import_chp(syntax.action, variables, covered, hasRepeat, default_id, tokens, auto_define));
 	}

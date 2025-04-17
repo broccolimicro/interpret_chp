@@ -191,8 +191,8 @@ parse_dot::attribute_list export_attribute_list(const chp::iterator i, const chp
 		parse_dot::assignment action;
 		action.valid = true;
 		action.first = "label";
-		bool g_vacuous = g.transitions[i.index].guard.is_constant();
-		bool a_vacuous = g.transitions[i.index].action.is_vacuous();
+		bool g_vacuous = g.transitions[i.index].guard.isConstant();
+		bool a_vacuous = g.transitions[i.index].action.isVacuous();
 
 		if (!g_vacuous && !a_vacuous) {
 			action.second = export_expression(g.transitions[i.index].guard, variables).to_string() + " -> " +
@@ -714,8 +714,8 @@ parse_chp::parallel export_parallel(const chp::graph &g, const boolean::variable
 string export_transition(const chp::graph &g, const ucs::variable_set &v, petri::iterator i, bool is_guard, bool here) {
 	string result;
 
-	bool render_guard = not g.transitions[i.index].guard.is_valid();
-	bool render_action = not g.transitions[i.index].action.is_vacuous();
+	bool render_guard = not g.transitions[i.index].guard.isValid();
+	bool render_action = not g.transitions[i.index].action.isVacuous();
 
 	if (is_guard) {
 		if (render_guard) {
