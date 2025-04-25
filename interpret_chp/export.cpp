@@ -1,23 +1,16 @@
-/*
- * export.cpp
- *
- *  Created on: Feb 6, 2015
- *      Author: nbingham
- */
-
 #include "export.h"
 
 namespace chp {
 
-pair<parse_astg::node, parse_astg::node> export_astg(parse_astg::graph &astg, const chp::graph &g, chp::iterator pos, map<chp::iterator, pair<parse_astg::node, parse_astg::node> > &nodes, ucs::variable_set &variables, string tlabel, string plabel)
+pair<parse_astg::node, parse_astg::node> export_astg(parse_astg::graph &astg, const chp::graph &g, chp::iterator pos, map<chp::iterator, pair<parse_astg::node, parse_astg::node> > &nodes, string tlabel, string plabel)
 {
 	map<chp::iterator, pair<parse_astg::node, parse_astg::node> >::iterator loc = nodes.find(pos);
 	if (loc == nodes.end()) {
 		if (pos.type == chp::transition::type) {
 			pair<parse_astg::node, parse_astg::node> inout;
 
-			parse_expression::expression guard = export_expression(g.transitions[pos.index].guard, variables);
-			parse_expression::composition action = export_composition(g.transitions[pos.index].action, variables);
+			parse_expression::expression guard = export_expression(g.transitions[pos.index].guard, g);
+			parse_expression::composition action = export_composition(g.transitions[pos.index].action, g);
 			inout.first = parse_astg::node(guard, action, tlabel);
 			inout.second = inout.first;
 
@@ -34,15 +27,15 @@ pair<parse_astg::node, parse_astg::node> export_astg(parse_astg::graph &astg, co
 	return loc->second;
 }
 
-parse_astg::graph export_astg(const chp::graph &g, ucs::variable_set &variables)
+parse_astg::graph export_astg(const chp::graph &g)
 {
 	parse_astg::graph result;
 
 	result.name = "chp";
 
 	// Add the variables
-	for (int i = 0; i < (int)variables.nodes.size(); i++)
-		result.internal.push_back(export_variable_name(i, variables));
+	for (int i = 0; i < (int)g.vars.size(); i++)
+		result.internal.push_back(arithmetic::export_net(i, g));
 
 	// Add the arcs
 	map<chp::iterator, pair<parse_astg::node, parse_astg::node> > nodes;
@@ -51,7 +44,7 @@ parse_astg::graph export_astg(const chp::graph &g, ucs::variable_set &variables)
 	{
 		int curr = result.arcs.size();
 		result.arcs.push_back(parse_astg::arc());
-		pair<parse_astg::node, parse_astg::node> t0 = export_astg(result, g, chp::iterator(chp::transition::type, i), nodes, variables, to_string(i), to_string(i));
+		pair<parse_astg::node, parse_astg::node> t0 = export_astg(result, g, chp::iterator(chp::transition::type, i), nodes, to_string(i), to_string(i));
 		result.arcs[curr].nodes.push_back(t0.second);
 
 		vector<int> n = g.next(chp::transition::type, i);
@@ -68,7 +61,7 @@ parse_astg::graph export_astg(const chp::graph &g, ucs::variable_set &variables)
 					if (n[j] == g.reset[k].tokens[l].index)
 						is_reset = true;
 
-			pair<parse_astg::node, parse_astg::node> p1 = export_astg(result, g, chp::iterator(chp::place::type, n[j]), nodes, variables, to_string(n[j]), to_string(n[j]));
+			pair<parse_astg::node, parse_astg::node> p1 = export_astg(result, g, chp::iterator(chp::place::type, n[j]), nodes, to_string(n[j]), to_string(n[j]));
 			result.arcs[curr].nodes.push_back(p1.second);
 			forks.push_back(n[j]);
 		}
@@ -81,14 +74,14 @@ parse_astg::graph export_astg(const chp::graph &g, ucs::variable_set &variables)
 	{
 		int curr = result.arcs.size();
 		result.arcs.push_back(parse_astg::arc());
-		pair<parse_astg::node, parse_astg::node> p0 = export_astg(result, g, chp::iterator(chp::place::type, forks[i]), nodes, variables, to_string(forks[i]), to_string(forks[i]));
+		pair<parse_astg::node, parse_astg::node> p0 = export_astg(result, g, chp::iterator(chp::place::type, forks[i]), nodes, to_string(forks[i]), to_string(forks[i]));
 		result.arcs[curr].nodes.push_back(p0.second);
 
 		vector<int> n = g.next(chp::place::type, forks[i]);
 
 		for (int j = 0; j < (int)n.size(); j++)
 		{
-			pair<parse_astg::node, parse_astg::node> t1 = export_astg(result, g, chp::iterator(chp::transition::type, n[j]), nodes, variables, to_string(n[j]), to_string(n[j]));
+			pair<parse_astg::node, parse_astg::node> t1 = export_astg(result, g, chp::iterator(chp::transition::type, n[j]), nodes, to_string(n[j]), to_string(n[j]));
 			result.arcs[curr].nodes.push_back(t1.second);
 		}
 	}
@@ -97,7 +90,7 @@ parse_astg::graph export_astg(const chp::graph &g, ucs::variable_set &variables)
 	for (int i = 0; i < (int)g.reset.size(); i++)
 	{
 		result.marking.push_back(pair<parse_expression::composition, vector<parse_astg::node> >());
-		result.marking.back().first = export_composition(g.reset[i].encodings, variables);
+		result.marking.back().first = export_composition(g.reset[i].encodings, g);
 		for (int j = 0; j < (int)g.reset[i].tokens.size(); j++)
 			result.marking.back().second.push_back(parse_astg::node("p" + to_string(g.reset[i].tokens[j].index)));
 	}
@@ -121,7 +114,7 @@ parse_dot::node_id export_node_id(const chp::iterator &i)
 	return result;
 }
 
-parse_dot::attribute_list export_attribute_list(const chp::iterator i, const chp::graph &g, ucs::variable_set &variables, bool labels, bool notations)
+parse_dot::attribute_list export_attribute_list(const chp::iterator i, const chp::graph &g, bool labels, bool notations)
 {
 	parse_dot::attribute_list result;
 	result.valid = true;
@@ -195,12 +188,12 @@ parse_dot::attribute_list export_attribute_list(const chp::iterator i, const chp
 		bool a_vacuous = g.transitions[i.index].action.isVacuous();
 
 		if (!g_vacuous && !a_vacuous) {
-			action.second = export_expression(g.transitions[i.index].guard, variables).to_string() + " -> " +
-			                export_composition(g.transitions[i.index].action, variables).to_string();
+			action.second = arithmetic::export_expression(g.transitions[i.index].guard, g).to_string() + " -> " +
+			                arithmetic::export_composition(g.transitions[i.index].action, g).to_string();
 		} else if (!g_vacuous) {
-			action.second = "[" + export_expression(g.transitions[i.index].guard, variables).to_string() + "]";
+			action.second = "[" + arithmetic::export_expression(g.transitions[i.index].guard, g).to_string() + "]";
 		} else {
-			action.second = export_composition(g.transitions[i.index].action, variables).to_string();
+			action.second = arithmetic::export_composition(g.transitions[i.index].action, g).to_string();
 		}
 
 		if (notations) {
@@ -231,17 +224,17 @@ parse_dot::attribute_list export_attribute_list(const chp::iterator i, const chp
 	return result;
 }
 
-parse_dot::statement export_statement(const chp::iterator &i, const chp::graph &g, ucs::variable_set &v, bool labels, bool notations)
+parse_dot::statement export_statement(const chp::iterator &i, const chp::graph &g, bool labels, bool notations)
 {
 	parse_dot::statement result;
 	result.valid = true;
 	result.statement_type = "node";
 	result.nodes.push_back(new parse_dot::node_id(export_node_id(i)));
-	result.attributes = export_attribute_list(i, g, v, labels, notations);
+	result.attributes = export_attribute_list(i, g, labels, notations);
 	return result;
 }
 
-parse_dot::statement export_statement(const pair<int, int> &a, const chp::graph &g, ucs::variable_set &v, bool labels, bool notations)
+parse_dot::statement export_statement(const pair<int, int> &a, const chp::graph &g, bool labels, bool notations)
 {
 	parse_dot::statement result;
 	result.valid = true;
@@ -264,22 +257,26 @@ parse_dot::statement export_statement(const pair<int, int> &a, const chp::graph 
 	return result;
 }
 
-parse_dot::graph export_graph(const chp::graph &g, ucs::variable_set &v, bool labels, bool notations)
+parse_dot::graph export_graph(const chp::graph &g, bool labels, bool notations)
 {
 	parse_dot::graph result;
 	result.valid = true;
 	result.id = "chp";
 	result.type = "digraph";
 
-	for (int i = 0; i < (int)g.places.size(); i++)
-		result.statements.push_back(export_statement(chp::iterator(chp::place::type, i), g, v, labels, notations));
+	for (int i = 0; i < (int)g.places.size(); i++) {
+		result.statements.push_back(export_statement(chp::iterator(chp::place::type, i), g, labels, notations));
+	}
 
-	for (int i = 0; i < (int)g.transitions.size(); i++)
-		result.statements.push_back(export_statement(chp::iterator(chp::transition::type, i), g, v, labels, notations));
+	for (int i = 0; i < (int)g.transitions.size(); i++) {
+		result.statements.push_back(export_statement(chp::iterator(chp::transition::type, i), g, labels, notations));
+	}
 
-	for (int i = 0; i < 2; i++)
-		for (int j = 0; j < (int)g.arcs[i].size(); j++)
-			result.statements.push_back(export_statement(pair<int, int>(i, j), g, v, labels, notations));
+	for (int i = 0; i < 2; i++) {
+		for (int j = 0; j < (int)g.arcs[i].size(); j++) {
+			result.statements.push_back(export_statement(pair<int, int>(i, j), g, labels, notations));
+		}
+	}
 
 	return result;
 }
@@ -711,7 +708,7 @@ parse_chp::parallel export_parallel(const chp::graph &g, const boolean::variable
 	return wrapper;
 }*/
 
-string export_transition(const chp::graph &g, const ucs::variable_set &v, petri::iterator i, bool is_guard, bool here) {
+string export_transition(const chp::graph &g, petri::iterator i, bool is_guard, bool here) {
 	string result;
 
 	bool render_guard = not g.transitions[i.index].guard.isValid();
@@ -719,13 +716,13 @@ string export_transition(const chp::graph &g, const ucs::variable_set &v, petri:
 
 	if (is_guard) {
 		if (render_guard) {
-			result += export_expression(g.transitions[i.index].guard, v).to_string() + "->";
+			result += arithmetic::export_expression(g.transitions[i.index].guard, g).to_string() + "->";
 		} else {
 			result += "vdd->";
 		}
 	} else {
 		if (render_guard) {
-			result += "[" + export_expression(g.transitions[i.index].guard, v).to_string() + "]";
+			result += "[" + arithmetic::export_expression(g.transitions[i.index].guard, g).to_string() + "]";
 		}
 
 		if (render_guard and render_action) {
@@ -738,7 +735,7 @@ string export_transition(const chp::graph &g, const ucs::variable_set &v, petri:
 	}
 
 	if (render_action) {
-		result += export_composition(g.transitions[i.index].action, v).to_string();
+		result += arithmetic::export_composition(g.transitions[i.index].action, g).to_string();
 	}
 
 	if ((is_guard or not render_guard) and not render_action) {
@@ -747,7 +744,7 @@ string export_transition(const chp::graph &g, const ucs::variable_set &v, petri:
 	return result;
 }
 
-string export_node(petri::iterator i, const chp::graph &g, const ucs::variable_set &v)
+string export_node(petri::iterator i, const chp::graph &g)
 {
 	vector<petri::iterator> n, p;
 	if (i.type == chp::place::type) {
@@ -776,7 +773,7 @@ string export_node(petri::iterator i, const chp::graph &g, const ucs::variable_s
 			if (j != 0)
 				result += "[]...";
 
-			result += export_transition(g, v, pp[j], false, false);
+			result += export_transition(g, pp[j], false, false);
 		}
 		if (pp.size() > 1) {
 			result += "]";
@@ -791,7 +788,7 @@ string export_node(petri::iterator i, const chp::graph &g, const ucs::variable_s
 	if (i.type == chp::place::type) {
 		result += "; <here> ";
 	} else {
-		result += ";" + export_transition(g, v, i, false, true) + ";";
+		result += ";" + export_transition(g, i, false, true) + ";";
 	}
 
 
@@ -813,7 +810,7 @@ string export_node(petri::iterator i, const chp::graph &g, const ucs::variable_s
 				result += "...[]";
 
 
-			result += export_transition(g, v, nn[j], nn.size() > 1, false);
+			result += export_transition(g, nn[j], nn.size() > 1, false);
 		}
 		if (nn.size() > 1) {
 			result += "...]";
