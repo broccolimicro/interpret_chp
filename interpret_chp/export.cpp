@@ -35,7 +35,7 @@ parse_astg::graph export_astg(const chp::graph &g)
 
 	// Add the variables
 	for (int i = 0; i < (int)g.vars.size(); i++)
-		result.internal.push_back(g.netAt(i));
+		result.internal.push_back(ucs::Net(g.netAt(i)));
 
 	// Add the arcs
 	map<chp::iterator, pair<parse_astg::node, parse_astg::node> > nodes;
