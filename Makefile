@@ -1,6 +1,6 @@
 NAME          = interpret_chp
-DEPEND        = interpret_arithmetic parse_expression parse_ucs parse_dot parse_astg parse_chp parse_cog petri chp arithmetic parse common
-TEST_DEPEND   = interpret_arithmetic parse_expression parse_ucs parse_dot parse_astg parse_chp parse_cog petri chp arithmetic parse common
+DEPEND        = parse_dot parse_astg parse_chp parse_cog chp interpret_arithmetic petri parse_expression parse_ucs arithmetic parse common
+TEST_DEPEND   = parse_dot parse_astg parse_chp parse_cog chp interpret_arithmetic petri parse_expression parse_ucs arithmetic parse common
 
 COVERAGE ?= 0
 
@@ -30,7 +30,7 @@ endif
 
 TEST_INCLUDE_PATHS = -I$(GTEST)/googletest/include $(TEST_DEPEND:%=-I../%) -I.
 TEST_LIBRARY_PATHS = -L$(GTEST)/build/lib $(TEST_DEPEND:%=-L../%) -L.
-TEST_LIBRARIES = -l$(NAME) $(TEST_DEPEND:%=-l%) -pthread -lgtest
+TEST_LIBRARIES = -l$(NAME) $(TEST_DEPEND:%=-l%) -pthread -lgtest -lcgraph -lgvc
 
 TESTS        := $(shell mkdir -p $(TESTDIR); find $(TESTDIR) -name '*.cpp')
 TEST_OBJECTS := $(TESTS:%.cpp=build/%.o) build/$(TESTDIR)/gtest_main.o
