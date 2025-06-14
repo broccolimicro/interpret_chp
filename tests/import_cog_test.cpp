@@ -438,8 +438,8 @@ while {
 	auto A = arithmetic::Operand::varOf(vA);
 	auto B = arithmetic::Operand::varOf(vB);
 
-	vector<petri::iterator> c0 = findRule(g, c==0, arithmetic::Parallel());
-	vector<petri::iterator> c1 = findRule(g, c==1, arithmetic::Parallel());
+	vector<petri::iterator> c0 = findRule(g, c==0, true);
+	vector<petri::iterator> c1 = findRule(g, c==1, true);
 	
 	ASSERT_FALSE(c0.empty());
 	ASSERT_FALSE(c1.empty());
@@ -488,8 +488,8 @@ while {
 	auto c = arithmetic::Operand::varOf(vc);
 	auto R = arithmetic::Operand::varOf(vR);
 
-	vector<petri::iterator> c0 = findRule(g, c==0, arithmetic::Parallel());
-	vector<petri::iterator> c1 = findRule(g, c==1, arithmetic::Parallel());
+	vector<petri::iterator> c0 = findRule(g, c==0, true);
+	vector<petri::iterator> c1 = findRule(g, c==1, true);
 	
 	ASSERT_FALSE(c0.empty());
 	ASSERT_FALSE(c1.empty());

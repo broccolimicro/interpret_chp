@@ -87,7 +87,7 @@ segment import_segment(chp::graph &dst, const parse_cog::composition &syntax, in
 		if (not skipCond.isNull()) {
 			petri::iterator arrow = dst.create(chp::place());
 			for (auto i = result.nodes.source.begin(); i != result.nodes.source.end(); i++) {
-				petri::iterator skip = dst.create(chp::transition(skipCond, arithmetic::Parallel()));
+				petri::iterator skip = dst.create(chp::transition(skipCond));
 				dst.connect(*i, skip);
 				dst.connect(skip, arrow);
 			}

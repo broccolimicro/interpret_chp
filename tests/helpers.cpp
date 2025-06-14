@@ -13,7 +13,15 @@ vector<petri::iterator> findRule(const chp::graph &g, arithmetic::Expression gua
 
 	vector<petri::iterator> result;
 	for (int i = 0; i < (int)g.transitions.size(); i++) {
-		if (areSame(g.transitions[i].guard, guard) and areSame(g.transitions[i].action, action)) {
+		arithmetic::Expression e = g.transitions[i].guard;
+		e.minimize();
+		arithmetic::Choice c = g.transitions[i].action;
+		for (auto j = c.terms.begin(); j != c.terms.end(); j++) {
+			for (auto k = j->actions.begin(); k != j->actions.end(); k++) {
+				k->expr = k->expr.minimize();
+			}
+		}
+		if (areSame(e, guard) and areSame(c, action)) {
 			result.push_back(petri::iterator(petri::transition::type, i));
 		}
 	}

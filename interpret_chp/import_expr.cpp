@@ -39,7 +39,7 @@ segment import_segment(chp::graph &dst, const parse_expression::assignment &synt
 	static const auto True = arithmetic::Operand(true);
 
 	segment result(true);
-	petri::iterator t = dst.create(chp::transition(True, arithmetic::import_action(syntax, dst, default_id, tokens, auto_define)));
+	petri::iterator t = dst.create(chp::transition(True, {{arithmetic::import_action(syntax, dst, default_id, tokens, auto_define)}}));
 	result.nodes = petri::segment({{t}}, {{t}});
 	return result;
 }

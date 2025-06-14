@@ -106,7 +106,7 @@ petri::segment import_segment(chp::graph &dst, const parse_chp::control &syntax,
 		}
 
 		if (!repeat.isNeutral()) {
-			chp::iterator guard = dst.create(chp::transition(repeat, arithmetic::Choice(arithmetic::Parallel())));
+			chp::iterator guard = dst.create(chp::transition(repeat, arithmetic::Choice(true)));
 			dst.connect(result.source, petri::bound({{guard}}));
 			chp::iterator arrow = dst.create(chp::place());
 			dst.connect(guard, arrow);
@@ -130,15 +130,30 @@ void import_chp(chp::graph &dst, const parse_chp::composition &syntax, tokenizer
 		result.reset.clear();
 	}
 
+	if (result.source.size() > 1u) {
+		petri::iterator p = dst.create(chp::place());
+		dst.connect({{p}}, result.source);
+		result.source = petri::bound({{p}});
+	} else {
+		for (auto i = result.source.begin(); i != result.source.end(); i++) {
+			for (int j = (int)i->size()-1; j >= 0; j--) {
+				if (i->nodes[j].type == chp::transition::type) {
+					vector<petri::iterator> p = dst.prev(i->nodes[j]);
+					if (p.empty()) {
+						p.push_back(dst.create(place()));
+						dst.connect(p.back(), i->nodes[j]);
+					}
+					i->nodes.erase(i->nodes.begin()+j);
+					i->nodes.insert(i->nodes.end(), p.begin(), p.end());
+				}
+			}
+		}
+	}
+
 	vector<chp::state> reset;
 	for (auto i = result.source.begin(); i != result.source.end(); i++) {
 		chp::state rst;
 		for (auto j = i->begin(); j != i->end(); j++) {
-			if (j->type == chp::transition::type) {
-				petri::iterator p = dst.create(place());
-				dst.connect(p, *j);
-				*j = p;
-			}
 			rst.tokens.push_back(petri::token(j->index));
 		}
 		reset.push_back(rst);
