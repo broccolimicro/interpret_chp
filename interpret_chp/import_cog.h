@@ -11,12 +11,14 @@
 #include <parse_expression/expression.h>
 #include <parse_expression/assignment.h>
 
+#include <interpret_chp/import_expr.h>
+
 namespace chp {
 
 // COG
 
-petri::segment import_segment(chp::graph &dst, const parse_cog::composition &syntax, arithmetic::Expression &covered, bool &hasRepeat, int default_id, tokenizer *tokens, bool auto_define);
-petri::segment import_segment(chp::graph &dst, const parse_cog::control &syntax, int default_id, tokenizer *tokens, bool auto_define);
+chp::segment import_segment(chp::graph &dst, const parse_cog::composition &syntax, int default_id, tokenizer *tokens, bool auto_define);
+chp::segment import_segment(chp::graph &dst, const parse_cog::control &syntax, int default_id, tokenizer *tokens, bool auto_define);
 void import_chp(chp::graph &dst, const parse_cog::composition &syntax, tokenizer *tokens, bool auto_define);
 
 }

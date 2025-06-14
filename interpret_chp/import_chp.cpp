@@ -25,7 +25,9 @@ petri::segment import_segment(chp::graph &dst, const parse_chp::composition &syn
 		} else if (syntax.branches[i].ctrl.valid) {
 			branch = import_segment(dst, syntax.branches[i].ctrl, default_id, tokens, auto_define);
 		} else if (syntax.branches[i].assign.valid) {
-			branch = import_segment(dst, syntax.branches[i].assign, default_id, tokens, auto_define);
+			branch = import_segment(dst, syntax.branches[i].assign, default_id, tokens, auto_define).nodes;
+		} else {
+			continue;
 		}
 
 		result = dst.compose(composition, result, branch);
@@ -51,8 +53,7 @@ petri::segment import_segment(chp::graph &dst, const parse_chp::composition &syn
 	return result;
 }
 
-petri::segment import_segment(chp::graph &dst, const parse_chp::control &syntax, int default_id, tokenizer *tokens, bool auto_define)
-{
+petri::segment import_segment(chp::graph &dst, const parse_chp::control &syntax, int default_id, tokenizer *tokens, bool auto_define) {
 	if (syntax.region != "") {
 		default_id = atoi(syntax.region.c_str());
 	}
@@ -65,7 +66,7 @@ petri::segment import_segment(chp::graph &dst, const parse_chp::control &syntax,
 	for (int i = 0; i < (int)syntax.branches.size(); i++) {
 		petri::segment branch;
 		if (syntax.branches[i].first.valid and not arithmetic::import_expression(syntax.branches[i].first, dst, default_id, tokens, auto_define).isValid()) {
-			branch = dst.compose(petri::sequence, branch, import_segment(dst, syntax.branches[i].first, default_id, tokens, auto_define));
+			branch = dst.compose(petri::sequence, branch, import_segment(dst, syntax.branches[i].first, default_id, tokens, auto_define).nodes);
 		}
 		if (syntax.branches[i].second.valid) {
 			branch = dst.compose(petri::sequence, branch, import_segment(dst, syntax.branches[i].second, default_id, tokens, auto_define));

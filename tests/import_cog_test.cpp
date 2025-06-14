@@ -13,13 +13,16 @@
 #include <interpret_chp/import_cog.h>
 #include <interpret_chp/export_dot.h>
 
+#include <interpret_arithmetic/export.h>
+
 #include "helpers.h"
+#include "dot.h"
 
 using namespace std;
 using namespace test;
 
 // Helper function to parse a string into an HSE graph via COG
-/*chp::graph load_cog_string(string input) {
+chp::graph load_cog_string(string input) {
 	// Set up tokenizer
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -42,7 +45,7 @@ using namespace test;
 }
 
 // Test basic sequence import 
-TEST(CogImport, BasicSequence) {
+/*TEST(CogImport, BasicSequence) {
 	chp::graph g = load_cog_string(R"(
 		region 1 {
 			a+
@@ -60,11 +63,14 @@ TEST(CogImport, BasicSequence) {
 	int b = g.netIndex("b'1");
 	EXPECT_GE(a, 0);
 	EXPECT_GE(b, 0);
-   
-	vector<petri::iterator> a1 = findRule(g, 1, boolean::cover(a, 1));
-	vector<petri::iterator> b1 = findRule(g, 1, boolean::cover(b, 1));
-	vector<petri::iterator> a0 = findRule(g, 1, boolean::cover(a, 0));
-	vector<petri::iterator> b0 = findRule(g, 1, boolean::cover(b, 0));
+
+	auto True = arithmetic::Operand(true);
+	auto False = arithmetic::Operand(false);
+  
+	vector<petri::iterator> a1 = findRule(g, True, arithmetic::Parallel(a, True));
+	vector<petri::iterator> b1 = findRule(g, True, arithmetic::Parallel(b, True));
+	vector<petri::iterator> a0 = findRule(g, True, arithmetic::Parallel(a, False));
+	vector<petri::iterator> b0 = findRule(g, True, arithmetic::Parallel(b, False));
 	
 	ASSERT_FALSE(a1.empty());
 	ASSERT_FALSE(b1.empty());
@@ -328,3 +334,163 @@ TEST(CogImport, WCHB1bBuffer) {
 	EXPECT_TRUE(g.is_sequence(rt0[1], le1[1]));
 }*/
 
+TEST(CogImport, Copy) {
+	chp::graph g = load_cog_string(R"(
+while {
+	x = L.recv()
+	A.send(x) and B.send(x)
+}
+)");
+
+	g.post_process();
+
+	gvdot::render("copy.png", chp::export_graph(g, true).to_string());
+	
+	EXPECT_EQ(g.netCount(), 4);
+	EXPECT_GE(g.transitions.size(), 3u);
+	
+	int vx = g.netIndex("x");
+	int vL = g.netIndex("L.recv");
+	int vA = g.netIndex("A.send");
+	int vB = g.netIndex("B.send");
+	EXPECT_GE(vx, 0);
+	EXPECT_GE(vL, 0);
+	EXPECT_GE(vA, 0);
+	EXPECT_GE(vB, 0);
+
+	auto True = arithmetic::Operand(true);
+	auto False = arithmetic::Operand(false);
+
+	auto x = arithmetic::Operand::varOf(vx);
+	auto L = arithmetic::Operand::varOf(vL);
+	auto A = arithmetic::Operand::varOf(vA);
+	auto B = arithmetic::Operand::varOf(vB);
+}
+
+TEST(CogImport, Add) {
+	chp::graph g = load_cog_string(R"(
+while {
+	S.send(A.recv() + B.recv())
+}
+)");
+
+	g.post_process();
+
+	gvdot::render("add.png", chp::export_graph(g, true).to_string());
+	
+	EXPECT_EQ(g.netCount(), 3);
+	EXPECT_GE(g.transitions.size(), 1u);
+	
+	int vA = g.netIndex("A.recv");
+	int vB = g.netIndex("B.recv");
+	int vS = g.netIndex("S.send");
+	EXPECT_GE(vA, 0);
+	EXPECT_GE(vB, 0);
+	EXPECT_GE(vS, 0);
+
+	auto True = arithmetic::Operand(true);
+	auto False = arithmetic::Operand(false);
+
+	auto A = arithmetic::Operand::varOf(vA);
+	auto B = arithmetic::Operand::varOf(vB);
+	auto S = arithmetic::Operand::varOf(vS);
+}
+
+TEST(CogImport, Split) {
+	chp::graph g = load_cog_string(R"(
+while {
+	x = L.recv() and c = C.recv()
+	await c == 0 {
+		A.send(x)
+	} or await c == 1 {
+		B.send(x)
+	}
+}
+)");
+
+	g.post_process();
+
+	gvdot::render("split.png", chp::export_graph(g, true).to_string());
+	
+	EXPECT_EQ(g.netCount(), 6);
+	EXPECT_GE(g.transitions.size(), 6u);
+	
+	int vx = g.netIndex("x");
+	int vL = g.netIndex("L.recv");
+	int vC = g.netIndex("C.recv");
+	int vc = g.netIndex("c");
+	int vA = g.netIndex("A.send");
+	int vB = g.netIndex("B.send");
+	EXPECT_GE(vx, 0);
+	EXPECT_GE(vL, 0);
+	EXPECT_GE(vC, 0);
+	EXPECT_GE(vc, 0);
+	EXPECT_GE(vA, 0);
+	EXPECT_GE(vB, 0);
+
+	auto True = arithmetic::Operand(true);
+	auto False = arithmetic::Operand(false);
+
+	auto x = arithmetic::Operand::varOf(vx);
+	auto L = arithmetic::Operand::varOf(vL);
+	auto C = arithmetic::Operand::varOf(vC);
+	auto c = arithmetic::Operand::varOf(vc);
+	auto A = arithmetic::Operand::varOf(vA);
+	auto B = arithmetic::Operand::varOf(vB);
+
+	vector<petri::iterator> c0 = findRule(g, c==0, arithmetic::Parallel());
+	vector<petri::iterator> c1 = findRule(g, c==1, arithmetic::Parallel());
+	
+	ASSERT_FALSE(c0.empty());
+	ASSERT_FALSE(c1.empty());
+}
+
+TEST(CogImport, Merge) {
+	chp::graph g = load_cog_string(R"(
+while {
+	c = C.recv()
+	await c == 0 {
+		x = A.recv()
+	} or await c == 1 {
+		x = B.recv()
+	}
+	R.send(x)
+}
+)");
+
+	g.post_process();
+
+	gvdot::render("merge.png", chp::export_graph(g, true).to_string());
+	
+	EXPECT_EQ(g.netCount(), 6);
+	EXPECT_GE(g.transitions.size(), 6u);
+	
+	int vx = g.netIndex("x");
+	int vA = g.netIndex("A.recv");
+	int vB = g.netIndex("B.recv");
+	int vC = g.netIndex("C.recv");
+	int vc = g.netIndex("c");
+	int vR = g.netIndex("R.send");
+	EXPECT_GE(vx, 0);
+	EXPECT_GE(vA, 0);
+	EXPECT_GE(vB, 0);
+	EXPECT_GE(vC, 0);
+	EXPECT_GE(vc, 0);
+	EXPECT_GE(vR, 0);
+
+	auto True = arithmetic::Operand(true);
+	auto False = arithmetic::Operand(false);
+
+	auto x = arithmetic::Operand::varOf(vx);
+	auto A = arithmetic::Operand::varOf(vA);
+	auto B = arithmetic::Operand::varOf(vB);
+	auto C = arithmetic::Operand::varOf(vC);
+	auto c = arithmetic::Operand::varOf(vc);
+	auto R = arithmetic::Operand::varOf(vR);
+
+	vector<petri::iterator> c0 = findRule(g, c==0, arithmetic::Parallel());
+	vector<petri::iterator> c1 = findRule(g, c==1, arithmetic::Parallel());
+	
+	ASSERT_FALSE(c0.empty());
+	ASSERT_FALSE(c1.empty());
+}

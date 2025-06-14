@@ -42,7 +42,7 @@ chp::graph load_chp_string(string input) {
 TEST(ChpImport, Sequence) {
 	chp::graph g = load_chp_string("a+; b+; c-; d-");
 
-	gvdot::render("sequence.png", chp::export_graph(g, true).to_string());
+	//gvdot::render("sequence.png", chp::export_graph(g, true).to_string());
 
 	// Verify the graph structure
 	EXPECT_EQ(g.netCount(), 4);
@@ -83,7 +83,7 @@ TEST(ChpImport, Sequence) {
 TEST(ChpImport, Parallel) {
 	chp::graph g = load_chp_string("(a+, b+); (a-, b-)");
 	
-	gvdot::render("parallel.png", chp::export_graph(g, true).to_string());
+	//gvdot::render("parallel.png", chp::export_graph(g, true).to_string());
 	
 	// Verify the graph structure
 	EXPECT_EQ(g.netCount(), 2);
@@ -125,7 +125,7 @@ TEST(ChpImport, Parallel) {
 TEST(ChpImport, Selection) {
 	chp::graph g = load_chp_string("[c -> a+; a- [] ~c -> b+; b-]");
 	
-	gvdot::render("selection.png", chp::export_graph(g, true).to_string());
+	//gvdot::render("selection.png", chp::export_graph(g, true).to_string());
 
 	// Verify the graph structure
 	EXPECT_EQ(g.netCount(), 3);  // a, b, and c
@@ -174,7 +174,7 @@ TEST(ChpImport, Selection) {
 TEST(ChpImport, Loop) {
 	chp::graph g = load_chp_string("*[a+; b+; a-; b-]");
 	
-	gvdot::render("loop.png", chp::export_graph(g, true).to_string());
+	//gvdot::render("loop.png", chp::export_graph(g, true).to_string());
 	
 	// Verify the graph structure
 	EXPECT_EQ(g.netCount(), 2);
@@ -210,7 +210,7 @@ TEST(ChpImport, Loop) {
 TEST(ChpImport, ComplexComposition) {
 	chp::graph g = load_chp_string("(a+; b+) || (c+; d+)");
 	
-	gvdot::render("complex.png", chp::export_graph(g, true).to_string());
+	//gvdot::render("complex.png", chp::export_graph(g, true).to_string());
 	
 	// Verify the graph structure
 	EXPECT_EQ(g.netCount(), 4);  // a, b, c, d
@@ -256,7 +256,7 @@ TEST(ChpImport, ComplexComposition) {
 TEST(ChpImport, NestedControls) {
 	chp::graph g = load_chp_string("*[[a -> b+; b- [] ~a -> c+; (d+, e+); c-; (d-, e-)]]");
 	
-	gvdot::render("nested.png", chp::export_graph(g, true).to_string());
+	//gvdot::render("nested.png", chp::export_graph(g, true).to_string());
 	
 	// Verify the graph structure
 	EXPECT_GT(g.netCount(), 4);  // a, b, c, d, e
