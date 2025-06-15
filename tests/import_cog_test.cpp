@@ -494,3 +494,33 @@ while {
 	ASSERT_FALSE(c0.empty());
 	ASSERT_FALSE(c1.empty());
 }
+
+TEST(CogImport, Counter) {
+	chp::graph g = load_cog_string(R"(
+v = 0
+z = true
+while {
+	Lz.send(z)
+	l = Lc.recv()
+	await l == 0 & v == 0 {
+		v = 1
+		z = Rz.recv()
+		Rc.send(0)
+	} or await l == 0 & v == 1 {
+		v = 0
+		z = false
+	} or await l == 1 & v == 0 {
+		v = 1
+		z = false
+	} or await l == 1 & v == 1 {
+		v = 0
+		z = Rz.recv()
+		Rc.send(1)
+	}
+}
+)");
+
+	g.post_process();
+
+	gvdot::render("cog_counter.png", chp::export_graph(g, true).to_string());
+}

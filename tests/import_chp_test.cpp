@@ -321,4 +321,41 @@ TEST(ChpImport, NestedControls) {
 
 	EXPECT_TRUE(g.is_sequence(a1[0], b1[0]));
 	EXPECT_TRUE(g.is_sequence(a0[0], c1[0]));
-} 
+}
+
+TEST(ChpImport, Counter) {
+	chp::graph g = load_chp_string(R"(
+R.i-,R.d-,R0-,R1-,Rz-,L.z-,L.n-,v0-,v1-,vz+; [R.z&~R.n&~L.i&~L.d];
+*[[  v1 & (R.z | R.n) & L.i -> R.i+
+  [] (v0 | vz) & (R.z | R.n) & L.d -> R.d+
+  [] (v0 | vz) & L.i -> R1+
+  [] v1 & R.n & L.d -> R0+
+  [] v1 & R.z & L.d -> Rz+
+  ]; L.z-, L.n-;
+  [~L.i & ~L.d];
+  [  Rz -> vz+; v0-,v1-
+  [] R.i | R0 -> v0+; v1-,vz-
+  [] R.d | R1 -> v1+; v0-,vz-
+  ];
+	(
+	  [~v0 & ~v1]; Rz- ||
+	  [~v1 & ~vz]; R0- ||
+		[~v1 & ~vz & ~R.z & ~R.n]; R.i- ||
+		[~v0 & ~vz]; R1- ||
+		[~v0 & ~vz & ~R.z & ~R.n]; R.d-
+  ); @
+  [  ~v0 & ~v1 -> L.z+
+  [] ~vz -> L.n+
+  ]
+ ] ||
+
+(L.i-,L.d-;[~L.z&~L.n]; *[[L.z | L.n]; [1->L.i+:1->L.d+]; [~L.z&~L.n]; L.i-,L.d-] ||
+R.z+,R.n-;[~R.i&~R.d]; *[[R.i | R.d]; R.z-,R.n-; [~R.i&~R.d]; [1->R.z+:1->R.n+]])'1
+)");
+
+	g.post_process();
+	
+	gvdot::render("counter.png", chp::export_graph(g, true).to_string());
+}
+
+

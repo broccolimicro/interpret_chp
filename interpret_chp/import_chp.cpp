@@ -75,14 +75,22 @@ petri::segment import_segment(chp::graph &dst, const parse_chp::control &syntax,
 		result = dst.compose(petri::choice, result, branch);
 	}
 
-	if (not syntax.deterministic or syntax.repeat) {
-		petri::iterator p = dst.nest_in(result.source);
+	if (result.source.size() > 1u) {
+		petri::iterator p = dst.create(chp::place());
+		dst.connect({{p}}, result.source);
 		result.source = petri::bound({{p}});
-		if (not syntax.deterministic) {
-			for (auto i = result.source.begin(); i != result.source.end(); i++) {
-				for (auto j = i->begin(); j != i->end(); j++) {
-					dst.places[j->index].arbiter = true;
-				}
+	}
+
+	if (result.sink.size() > 1u) {
+		petri::iterator p = dst.create(chp::place());
+		dst.connect(result.sink, {{p}});
+		result.sink = petri::bound({{p}});
+	}
+
+	if (not syntax.deterministic) {
+		for (auto i = result.source.begin(); i != result.source.end(); i++) {
+			for (auto j = i->begin(); j != i->end(); j++) {
+				dst.places[j->index].arbiter = true;
 			}
 		}
 	}
