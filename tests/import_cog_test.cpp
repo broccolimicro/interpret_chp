@@ -27,7 +27,7 @@ chp::graph load_cog_string(string input) {
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
-	parse_cog::composition::register_syntax(tokens);
+	parse_cog::register_syntax(tokens);
 	
 	tokens.insert("string_input", input, nullptr);
 	

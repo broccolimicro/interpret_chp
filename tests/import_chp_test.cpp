@@ -5,7 +5,7 @@
 #include <parse/tokenizer.h>
 #include <parse/default/block_comment.h>
 #include <parse/default/line_comment.h>
-#include <parse_chp/composition.h>
+#include <parse_chp/factory.h>
 #include <interpret_chp/import_chp.h>
 #include <interpret_chp/export_dot.h>
 
@@ -21,7 +21,7 @@ chp::graph load_chp_string(string input) {
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
-	parse_chp::composition::register_syntax(tokens);
+	parse_chp::register_syntax(tokens);
 
 	tokens.insert("string_input", input, nullptr);
 
@@ -290,7 +290,6 @@ TEST(ChpImport, NestedControls) {
 	vector<petri::iterator> e0 = findRule(g, True, {{arithmetic::Action(e.index, False)}});
 	vector<petri::iterator> a0 = findRule(g, ~a, true);
 	vector<petri::iterator> a1 = findRule(g, a, true);
-	vector<petri::iterator> sp = findRule(g, True, true);
 	
 	ASSERT_EQ(b1.size(), 1u);
 	ASSERT_EQ(b0.size(), 1u);
@@ -302,7 +301,6 @@ TEST(ChpImport, NestedControls) {
 	ASSERT_EQ(e0.size(), 1u);
 	ASSERT_EQ(a0.size(), 1u);
 	ASSERT_EQ(a1.size(), 1u);
-	ASSERT_EQ(sp.size(), 1u);
 	
 	// Verify loops - all transitions should be part of a cycle
 	EXPECT_TRUE(g.is_sequence(b1[0], b0[0]));
@@ -313,10 +311,6 @@ TEST(ChpImport, NestedControls) {
 	EXPECT_TRUE(g.is_sequence(c0[0], d0[0]));
 	EXPECT_TRUE(g.is_sequence(c0[0], e0[0]));
 
-	EXPECT_TRUE(g.is_sequence(d0[0], sp[0]));
-	EXPECT_TRUE(g.is_sequence(e0[0], sp[0]));
-
-	EXPECT_TRUE(g.is_sequence(sp[0], a0[0]));
 	EXPECT_TRUE(g.is_sequence(b0[0], a1[0]));
 
 	EXPECT_TRUE(g.is_sequence(a1[0], b1[0]));

@@ -31,6 +31,7 @@ endif
 TEST_INCLUDE_PATHS = -I$(GTEST)/googletest/include $(TEST_DEPEND:%=-I../%) -I.
 TEST_LIBRARY_PATHS = -L$(GTEST)/build/lib $(TEST_DEPEND:%=-L../%) -L.
 TEST_LIBRARIES = -l$(NAME) $(TEST_DEPEND:%=-l%) -pthread -lgtest -lcgraph -lgvc
+TEST_LIBRARY_OBJECTS = $(foreach dep,$(TEST_DEPEND),../$(dep)/lib$(dep).a)
 
 TESTS        := $(shell mkdir -p $(TESTDIR); find $(TESTDIR) -name '*.cpp')
 TEST_OBJECTS := $(TESTS:%.cpp=build/%.o) build/$(TESTDIR)/gtest_main.o
@@ -91,7 +92,7 @@ build/$(SRCDIR)/%.o: $(SRCDIR)/%.cpp
 	@$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) -MM -MF $(patsubst %.o,%.d,$@) -MT $@ -c $<
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
 
-$(TEST_TARGET): $(TEST_OBJECTS) $(OBJECTS) $(TARGET)
+$(TEST_TARGET): $(TEST_OBJECTS) $(OBJECTS) $(TARGET) $(TEST_LIBRARY_OBJECTS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(TEST_LIBRARY_PATHS) $(TEST_OBJECTS) $(TEST_LIBRARIES) -o $(TEST_TARGET)
 
 build/$(TESTDIR)/%.o: $(TESTDIR)/%.cpp
