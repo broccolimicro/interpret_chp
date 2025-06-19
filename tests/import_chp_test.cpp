@@ -352,4 +352,13 @@ R.z+,R.n-;[~R.i&~R.d]; *[[R.i | R.d]; R.z-,R.n-; [~R.i&~R.d]; [1->R.z+:1->R.n+]]
 	gvdot::render("counter.png", chp::export_graph(g, true).to_string());
 }
 
+TEST(ChpImport, Buffer) {
+	chp::graph g = load_chp_string(R"(
+*[x = L?; R!x]
+)");
+
+	g.post_process();
+	
+	gvdot::render("buffer.png", chp::export_graph(g, true).to_string());
+}
 
