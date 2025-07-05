@@ -350,9 +350,9 @@ while {
 	EXPECT_GE(g.transitions.size(), 3u);
 	
 	int vx = g.netIndex("x");
-	int vL = g.netIndex("L.recv");
-	int vA = g.netIndex("A.send");
-	int vB = g.netIndex("B.send");
+	int vL = g.netIndex("L");
+	int vA = g.netIndex("A");
+	int vB = g.netIndex("B");
 	EXPECT_GE(vx, 0);
 	EXPECT_GE(vL, 0);
 	EXPECT_GE(vA, 0);
@@ -381,9 +381,9 @@ while {
 	EXPECT_EQ(g.netCount(), 3);
 	EXPECT_GE(g.transitions.size(), 1u);
 	
-	int vA = g.netIndex("A.recv");
-	int vB = g.netIndex("B.recv");
-	int vS = g.netIndex("S.send");
+	int vA = g.netIndex("A");
+	int vB = g.netIndex("B");
+	int vS = g.netIndex("S");
 	EXPECT_GE(vA, 0);
 	EXPECT_GE(vB, 0);
 	EXPECT_GE(vS, 0);
@@ -416,11 +416,11 @@ while {
 	EXPECT_GE(g.transitions.size(), 6u);
 	
 	int vx = g.netIndex("x");
-	int vL = g.netIndex("L.recv");
-	int vC = g.netIndex("C.recv");
+	int vL = g.netIndex("L");
+	int vC = g.netIndex("C");
 	int vc = g.netIndex("c");
-	int vA = g.netIndex("A.send");
-	int vB = g.netIndex("B.send");
+	int vA = g.netIndex("A");
+	int vB = g.netIndex("B");
 	EXPECT_GE(vx, 0);
 	EXPECT_GE(vL, 0);
 	EXPECT_GE(vC, 0);
@@ -466,11 +466,11 @@ while {
 	EXPECT_GE(g.transitions.size(), 6u);
 	
 	int vx = g.netIndex("x");
-	int vA = g.netIndex("A.recv");
-	int vB = g.netIndex("B.recv");
-	int vC = g.netIndex("C.recv");
+	int vA = g.netIndex("A");
+	int vB = g.netIndex("B");
+	int vC = g.netIndex("C");
 	int vc = g.netIndex("c");
-	int vR = g.netIndex("R.send");
+	int vR = g.netIndex("R");
 	EXPECT_GE(vx, 0);
 	EXPECT_GE(vA, 0);
 	EXPECT_GE(vB, 0);
