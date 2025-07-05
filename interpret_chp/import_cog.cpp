@@ -57,6 +57,12 @@ segment import_segment(chp::graph &dst, const parse_cog::composition &syntax, in
 		result.nodes.source = petri::bound({{from}});
 	}
 
+	if (result.nodes.sink.size() > 1u and composition == choice) {
+		petri::iterator to = dst.create(chp::place());
+		dst.connect(result.nodes.sink, {{to}});
+		result.nodes.sink = petri::bound({{to}});
+	}
+
 	/*if ((int)syntax.branches.size() > 1) {
 		cout << "BEFORE" << endl;
 		cout << syntax.to_string() << endl;
