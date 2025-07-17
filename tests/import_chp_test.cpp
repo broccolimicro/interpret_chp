@@ -35,6 +35,8 @@ chp::graph load_chp_string(string input) {
 		chp::import_chp(g, syntax, &tokens, true);
 	}
 
+	g.post_process();
+
 	return g;
 }
 
@@ -47,7 +49,7 @@ TEST(ChpImport, Sequence) {
 	// Verify the graph structure
 	EXPECT_EQ(g.netCount(), 4);
 	EXPECT_EQ(g.transitions.size(), 4u);
-	EXPECT_EQ(g.places.size(), 4u);
+	EXPECT_EQ(g.places.size(), 5u);
 
 	auto True = arithmetic::Operand::boolOf(true);
 	auto False = arithmetic::Operand::boolOf(false);
@@ -87,7 +89,7 @@ TEST(ChpImport, Parallel) {
 	
 	// Verify the graph structure
 	EXPECT_EQ(g.netCount(), 2);
-	EXPECT_EQ(g.transitions.size(), 5u);
+	EXPECT_EQ(g.transitions.size(), 4u);
 	
 	auto True = arithmetic::Operand::boolOf(true);
 	auto False = arithmetic::Operand::boolOf(false);
@@ -108,17 +110,16 @@ TEST(ChpImport, Parallel) {
 	ASSERT_EQ(b1.size(), 1u);
 	ASSERT_EQ(a0.size(), 1u);
 	ASSERT_EQ(b0.size(), 1u);
-	ASSERT_EQ(sp.size(), 1u);
 
 	// Verify parallel structure - a+ and b+ should be concurrent
 	EXPECT_TRUE(g.is_parallel(a1[0], b1[0]));
 	EXPECT_TRUE(g.is_parallel(a0[0], b0[0]));
 	
 	// Verify sequencing - first parallel group completes before second group
-	EXPECT_TRUE(g.is_sequence(a1[0], sp[0]));
-	EXPECT_TRUE(g.is_sequence(sp[0], a0[0]));
-	EXPECT_TRUE(g.is_sequence(b1[0], sp[0]));
-	EXPECT_TRUE(g.is_sequence(sp[0], b0[0]));
+	EXPECT_TRUE(g.is_sequence(a1[0], a0[0]));
+	EXPECT_TRUE(g.is_sequence(b1[0], b0[0]));
+	EXPECT_TRUE(g.is_sequence(a1[0], b0[0]));
+	EXPECT_TRUE(g.is_sequence(b1[0], a0[0]));
 }
 
 // Test selection import ([c -> a+; a- [] ~c -> b+; b-])
@@ -260,7 +261,7 @@ TEST(ChpImport, NestedControls) {
 	
 	// Verify the graph structure
 	EXPECT_GT(g.netCount(), 4);  // a, b, c, d, e
-	EXPECT_GT(g.transitions.size(), 10u);  // At least b+, b-, c+, c-, d+/-, e+/-
+	EXPECT_GE(g.transitions.size(), 10u);  // At least b+, b-, c+, c-, d+/-, e+/-
 	
 	auto True = arithmetic::Operand::boolOf(true);
 	auto False = arithmetic::Operand::boolOf(false);
@@ -347,8 +348,6 @@ R.i-,R.d-,R0-,R1-,Rz-,L.z-,L.n-,v0-,v1-,vz+; [R.z&~R.n&~L.i&~L.d];
 R.z+,R.n-;[~R.i&~R.d]; *[[R.i | R.d]; R.z-,R.n-; [~R.i&~R.d]; [1->R.z+:1->R.n+]])'1
 )");
 
-	g.post_process();
-	
 	gvdot::render("counter.png", chp::export_graph(g, true).to_string());
 }
 
@@ -357,8 +356,6 @@ TEST(ChpImport, Buffer) {
 *[x = L?; R!x]
 )");
 
-	g.post_process();
-	
 	gvdot::render("buffer.png", chp::export_graph(g, true).to_string());
 }
 

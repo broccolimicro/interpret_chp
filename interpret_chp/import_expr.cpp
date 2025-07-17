@@ -6,7 +6,7 @@ namespace chp {
 
 segment::segment(bool cond) {
 	this->loop = false;
-	this->cond = cond;
+	this->cond = arithmetic::Expression::boolOf(cond);
 }
 
 segment::~segment() {

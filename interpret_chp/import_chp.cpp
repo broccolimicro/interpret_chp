@@ -108,7 +108,7 @@ petri::segment import_segment(chp::graph &dst, const parse_chp::control &syntax,
 					repeat = repeat & !arithmetic::import_expression(syntax.branches[i].first, dst, default_id, tokens, auto_define);
 				}
 			} else {
-				repeat = false;
+				repeat = arithmetic::Expression::boolOf(false);
 				break;
 			}
 		}

@@ -41,6 +41,8 @@ chp::graph load_cog_string(string input) {
 		chp::import_chp(g, syntax, &tokens, true);
 	}
 
+	g.post_process();
+
 	return g;
 }
 
@@ -342,8 +344,6 @@ while {
 }
 )");
 
-	g.post_process();
-
 	gvdot::render("copy.png", chp::export_graph(g, true).to_string());
 	
 	EXPECT_EQ(g.netCount(), 4);
@@ -373,8 +373,6 @@ while {
 	S.send(A.recv() + B.recv())
 }
 )");
-
-	g.post_process();
 
 	gvdot::render("add.png", chp::export_graph(g, true).to_string());
 	
@@ -408,8 +406,6 @@ while {
 }
 )");
 
-	g.post_process();
-
 	gvdot::render("split.png", chp::export_graph(g, true).to_string());
 	
 	EXPECT_EQ(g.netCount(), 6);
@@ -431,12 +427,12 @@ while {
 	auto True = arithmetic::Operand(true);
 	auto False = arithmetic::Operand(false);
 
-	auto x = arithmetic::Operand::varOf(vx);
-	auto L = arithmetic::Operand::varOf(vL);
-	auto C = arithmetic::Operand::varOf(vC);
-	auto c = arithmetic::Operand::varOf(vc);
-	auto A = arithmetic::Operand::varOf(vA);
-	auto B = arithmetic::Operand::varOf(vB);
+	auto x = arithmetic::Expression::varOf(vx);
+	auto L = arithmetic::Expression::varOf(vL);
+	auto C = arithmetic::Expression::varOf(vC);
+	auto c = arithmetic::Expression::varOf(vc);
+	auto A = arithmetic::Expression::varOf(vA);
+	auto B = arithmetic::Expression::varOf(vB);
 
 	vector<petri::iterator> c0 = findRule(g, c==0, true);
 	vector<petri::iterator> c1 = findRule(g, c==1, true);
@@ -457,8 +453,6 @@ while {
 	R.send(x)
 }
 )");
-
-	g.post_process();
 
 	gvdot::render("merge.png", chp::export_graph(g, true).to_string());
 	
@@ -481,12 +475,12 @@ while {
 	auto True = arithmetic::Operand(true);
 	auto False = arithmetic::Operand(false);
 
-	auto x = arithmetic::Operand::varOf(vx);
-	auto A = arithmetic::Operand::varOf(vA);
-	auto B = arithmetic::Operand::varOf(vB);
-	auto C = arithmetic::Operand::varOf(vC);
-	auto c = arithmetic::Operand::varOf(vc);
-	auto R = arithmetic::Operand::varOf(vR);
+	auto x = arithmetic::Expression::varOf(vx);
+	auto A = arithmetic::Expression::varOf(vA);
+	auto B = arithmetic::Expression::varOf(vB);
+	auto C = arithmetic::Expression::varOf(vC);
+	auto c = arithmetic::Expression::varOf(vc);
+	auto R = arithmetic::Expression::varOf(vR);
 
 	vector<petri::iterator> c0 = findRule(g, c==0, true);
 	vector<petri::iterator> c1 = findRule(g, c==1, true);
@@ -519,8 +513,6 @@ while {
 	}
 }
 )");
-
-	g.post_process();
 
 	gvdot::render("cog_counter.png", chp::export_graph(g, true).to_string());
 }
