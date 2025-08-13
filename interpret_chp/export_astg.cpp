@@ -41,8 +41,9 @@ parse_astg::graph export_astg(const chp::graph &g)
 	// Add the arcs
 	map<chp::iterator, pair<parse_astg::node, parse_astg::node> > nodes;
 	vector<int> forks;
-	for (int i = 0; i < (int)g.transitions.size(); i++)
-	{
+	for (int i = 0; i < (int)g.transitions.size(); i++) {
+		if (not g.transitions.is_valid(i)) continue;
+
 		int curr = result.arcs.size();
 		result.arcs.push_back(parse_astg::arc());
 		pair<parse_astg::node, parse_astg::node> t0 = export_astg(result, g, chp::iterator(chp::transition::type, i), nodes, to_string(i), to_string(i));
@@ -98,6 +99,8 @@ parse_astg::graph export_astg(const chp::graph &g)
 
 	// Add the arbiters
 	for (int i = 0; i < (int)g.places.size(); i++) {
+		if (not g.places.is_valid(i)) continue;
+
 		if (g.places[i].arbiter) {
 			result.arbiter.push_back(parse_astg::node("p" + to_string(i)));
 		}

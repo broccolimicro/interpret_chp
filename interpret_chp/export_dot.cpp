@@ -183,10 +183,14 @@ parse_dot::graph export_graph(const chp::graph &g, bool labels, bool notations)
 	result.type = "digraph";
 
 	for (int i = 0; i < (int)g.places.size(); i++) {
+		if (not g.places.is_valid(i)) continue;
+
 		result.statements.push_back(export_statement(chp::iterator(chp::place::type, i), g, labels, notations));
 	}
 
 	for (int i = 0; i < (int)g.transitions.size(); i++) {
+		if (not g.transitions.is_valid(i)) continue;
+
 		result.statements.push_back(export_statement(chp::iterator(chp::transition::type, i), g, labels, notations));
 	}
 

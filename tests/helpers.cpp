@@ -14,6 +14,8 @@ vector<petri::iterator> findRule(const chp::graph &g, arithmetic::Expression gua
 
 	vector<petri::iterator> result;
 	for (int i = 0; i < (int)g.transitions.size(); i++) {
+		if (not g.transitions.is_valid(i)) continue;
+
 		arithmetic::Expression e = g.transitions[i].guard;
 		e.top = arithmetic::minimize(e, {e.top}).map(e.top);
 		arithmetic::Choice c = g.transitions[i].action;
