@@ -123,7 +123,7 @@ segment import_segment(chp::graph &dst, const parse_cog::control &syntax, int de
 	if (syntax.guard.valid) {
 		segment sub = import_segment(dst, syntax.guard, default_id, tokens, auto_define);
 		if (syntax.kind == "if") {
-			sub.cond = arithmetic::wtrue(sub.cond);
+			sub.cond = arithmetic::isTrue(sub.cond);
 		} else if (syntax.kind == "await") {
 			sub.cond = arithmetic::isValid(sub.cond);
 		}
