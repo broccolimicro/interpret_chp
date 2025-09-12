@@ -122,6 +122,11 @@ segment import_segment(chp::graph &dst, const parse_cog::control &syntax, int de
 	segment result(true);
 	if (syntax.guard.valid) {
 		segment sub = import_segment(dst, syntax.guard, default_id, tokens, auto_define);
+		if (syntax.kind == "if") {
+			sub.cond = arithmetic::wtrue(sub.cond);
+		} else if (syntax.kind == "await") {
+			sub.cond = arithmetic::isValid(sub.cond);
+		}
 		result = compose(dst, petri::sequence, result, sub);
 	}
 	if (syntax.action.valid) {
