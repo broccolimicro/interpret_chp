@@ -179,7 +179,7 @@ parse_dot::graph export_graph(const chp::graph &g, bool labels, bool notations)
 {
 	parse_dot::graph result;
 	result.valid = true;
-	result.id = "chp";
+	result.id = g.name;
 	result.type = "digraph";
 
 	for (int i = 0; i < (int)g.places.size(); i++) {
