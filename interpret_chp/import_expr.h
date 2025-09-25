@@ -21,7 +21,7 @@ struct segment {
 
 segment compose(chp::graph &dst, int composition, segment s0, segment s1);
 
-segment import_segment(chp::graph &dst, const parse_expression::expression &syntax, int default_id, tokenizer *tokens, bool auto_define);
+segment import_segment(chp::graph &dst, const parse_expression::expression &syntax, string func, int default_id, tokenizer *tokens, bool auto_define);
 segment import_segment(chp::graph &dst, const parse_expression::assignment &syntax, int default_id, tokenizer *tokens, bool auto_define);
 
 }

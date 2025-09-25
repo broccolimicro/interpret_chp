@@ -109,7 +109,7 @@ parse_dot::attribute_list export_attribute_list(const chp::iterator i, const chp
 			action.second = arithmetic::export_expression(g.transitions[i.index].guard, g).to_string() + " -> " +
 			                arithmetic::export_composition(g.transitions[i.index].action, g).to_string();
 		} else if (!g_vacuous) {
-			action.second = "[" + arithmetic::export_expression(g.transitions[i.index].guard, g).to_string() + "]";
+			action.second = arithmetic::export_expression(g.transitions[i.index].guard, g).to_string() + " -> skip";
 		} else {
 			action.second = arithmetic::export_composition(g.transitions[i.index].action, g).to_string();
 		}
