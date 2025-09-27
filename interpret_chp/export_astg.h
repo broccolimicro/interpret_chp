@@ -7,11 +7,13 @@
 #include <chp/graph.h>
 #include <chp/state.h>
 
+#include <parse_astg/expression.h>
+
 namespace chp {
 
 // ASTG
 
-pair<parse_astg::node, parse_astg::node> export_astg(parse_astg::graph &g, parse_expression::composition c, string label);
+pair<parse_astg::node, parse_astg::node> export_astg(parse_astg::graph &g, parse_astg::composition c, string label);
 parse_astg::graph export_astg(const chp::graph &g);
 
 }

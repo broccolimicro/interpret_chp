@@ -8,7 +8,8 @@ vector<petri::iterator> findRule(const chp::graph &g, arithmetic::Expression gua
 	guard.top = arithmetic::minimize(guard, {guard.top}).map(guard.top);
 	for (auto i = action.terms.begin(); i != action.terms.end(); i++) {
 		for (auto j = i->actions.begin(); j != i->actions.end(); j++) {
-			j->expr.top = arithmetic::minimize(j->expr, {j->expr.top}).map(j->expr.top);
+			j->lvalue.minimize();
+			j->rvalue.minimize();
 		}
 	}
 
@@ -21,7 +22,8 @@ vector<petri::iterator> findRule(const chp::graph &g, arithmetic::Expression gua
 		arithmetic::Choice c = g.transitions[i].action;
 		for (auto j = c.terms.begin(); j != c.terms.end(); j++) {
 			for (auto k = j->actions.begin(); k != j->actions.end(); k++) {
-				k->expr.top = arithmetic::minimize(k->expr, {k->expr.top}).map(k->expr.top);
+				k->lvalue.minimize();
+				k->rvalue.minimize();
 			}
 		}
 		if (areSame(e, guard) and areSame(c, action)) {

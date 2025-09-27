@@ -1,5 +1,6 @@
 #include "import_dot.h"
 #include <interpret_arithmetic/import.h>
+#include <parse_cog/expression.h>
 
 namespace chp {
 
@@ -115,15 +116,15 @@ void import_chp(const parse_dot::statement &syntax, chp::graph &g, map<string, m
 			if (attr != attributes.end() && attr != globals[syntax.statement_type].end() && attr->second.size() != 0)
 			{
 				tokenizer temp;
-				parse_expression::composition::register_syntax(temp);
+				parse_cog::simple_composition::register_syntax(temp);
 				temp.insert(attr->first, attr->second);
 
 				temp.increment(true);
-				temp.expect<parse_expression::composition>();
+				temp.expect<parse_cog::simple_composition>();
 
 				if (temp.decrement(__FILE__, __LINE__))
 				{
-					parse_expression::composition exp(temp);
+					parse_cog::simple_composition exp(temp);
 					c = arithmetic::import_choice(exp, g, 0, &temp, true);
 				}
 

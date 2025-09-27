@@ -1,6 +1,6 @@
 #include "export_dot.h"
 
-#include <interpret_arithmetic/export.h>
+#include <chp/expression.h>
 
 namespace chp {
 
@@ -106,12 +106,12 @@ parse_dot::attribute_list export_attribute_list(const chp::iterator i, const chp
 		bool a_vacuous = g.transitions[i.index].action.isVacuous();
 
 		if (!g_vacuous && !a_vacuous) {
-			action.second = arithmetic::export_expression(g.transitions[i.index].guard, g).to_string() + " -> " +
-			                arithmetic::export_composition(g.transitions[i.index].action, g).to_string();
+			action.second = emit_expression(g.transitions[i.index].guard, g) + " -> " +
+			                emit_composition(g.transitions[i.index].action, g);
 		} else if (!g_vacuous) {
-			action.second = arithmetic::export_expression(g.transitions[i.index].guard, g).to_string() + " -> skip";
+			action.second = emit_expression(g.transitions[i.index].guard, g) + " -> skip";
 		} else {
-			action.second = arithmetic::export_composition(g.transitions[i.index].action, g).to_string();
+			action.second = emit_composition(g.transitions[i.index].action, g);
 		}
 
 		if (notations) {

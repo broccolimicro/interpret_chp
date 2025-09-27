@@ -1,6 +1,6 @@
 #include "export_cli.h"
 
-#include <interpret_arithmetic/export.h>
+#include <chp/expression.h>
 
 namespace chp {
 
@@ -12,13 +12,13 @@ string export_transition(const chp::graph &g, petri::iterator i, bool is_guard, 
 
 	if (is_guard) {
 		if (render_guard) {
-			result += arithmetic::export_expression(g.transitions[i.index].guard, g).to_string() + "->";
+			result += emit_expression(g.transitions[i.index].guard, g) + "->";
 		} else {
 			result += "vdd->";
 		}
 	} else {
 		if (render_guard) {
-			result += "[" + arithmetic::export_expression(g.transitions[i.index].guard, g).to_string() + "]";
+			result += "[" + emit_expression(g.transitions[i.index].guard, g) + "]";
 		}
 
 		if (render_guard and render_action) {
@@ -31,7 +31,7 @@ string export_transition(const chp::graph &g, petri::iterator i, bool is_guard, 
 	}
 
 	if (render_action) {
-		result += arithmetic::export_composition(g.transitions[i.index].action, g).to_string();
+		result += emit_composition(g.transitions[i.index].action, g);
 	}
 
 	if ((is_guard or not render_guard) and not render_action) {
