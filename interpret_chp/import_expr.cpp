@@ -21,7 +21,7 @@ segment compose(chp::graph &dst, int composition, segment s0, segment s1) {
 			s0.loop = s1.loop;
 		}
 	}
-	s0.nodes = dst.compose(composition, s0.nodes, s1.nodes);
+	s0.nodes = dst.compose(composition, s0.nodes, s1.nodes, true);
 	return s0;
 }
 
