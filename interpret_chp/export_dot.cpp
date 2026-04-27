@@ -203,4 +203,152 @@ parse_dot::graph export_graph(const chp::graph &g, bool labels, bool notations)
 	return result;
 }
 
+parse_dot::graph export_analysis(const chp::graph &g, bool labels, bool notations)
+{
+	parse_dot::graph result;
+	result.valid = true;
+	result.id = g.name + "_analysis";
+	result.type = "digraph";
+
+	// Create a node for each variable
+	for (const auto &[var_idx, chain] : g.useDefChains) {
+		string var_name = chain.name;
+		string var_node_id = "var_" + to_string(var_idx);
+
+		parse_dot::statement var_stmt;
+		var_stmt.valid = true;
+		var_stmt.statement_type = "node";
+		var_stmt.nodes.push_back(new parse_dot::node_id(var_node_id));
+
+		parse_dot::attribute_list var_attrs;
+		var_attrs.valid = true;
+		parse_dot::assignment_list var_sub_attrs;
+		var_sub_attrs.valid = true;
+
+		parse_dot::assignment var_shape;
+		var_shape.valid = true;
+		var_shape.first = "shape";
+		var_shape.second = "box";
+		var_sub_attrs.as.push_back(var_shape);
+
+		parse_dot::assignment var_label;
+		var_label.valid = true;
+		var_label.first = "label";
+		var_label.second = var_name;
+		var_sub_attrs.as.push_back(var_label);
+
+		var_attrs.attributes.push_back(var_sub_attrs);
+		var_stmt.attributes = var_attrs;
+		result.statements.push_back(var_stmt);
+	}
+
+	// Create use-def edges: from used variable to defined variable, labeled with transition index
+	// For each transition, find which variables it uses and defines
+	for (TransitionIdx trans_idx = 0; trans_idx < g.transitions.size(); trans_idx++) {
+		if (!g.transitions.is_valid(trans_idx)) continue;
+
+		const chp::transition &tran = g.transitions[trans_idx];
+
+		// Check for channel sends - treat output channel as definer, expression vars as used
+		vector<VarIdx> output_channels;
+		vector<VarIdx> input_channels;
+		for (const auto &term : tran.action.terms) {
+			for (const auto &action : term.actions) {
+				vector<VarIdx> sends = findOutputChannelsInExpression(action.rvalue);
+				vector<VarIdx> recvs = findInputChannelsInExpression(action.rvalue);
+				output_channels.insert(output_channels.end(), sends.begin(), sends.end());
+				input_channels.insert(input_channels.end(), recvs.begin(), recvs.end());
+			}
+		}
+
+		set<VarIdx> used_vars;
+		set<VarIdx> defined_vars;
+		bool is_channel_send = !output_channels.empty();
+		bool is_channel_recv = !input_channels.empty();
+
+		if (is_channel_send) {
+			// Channel send semantics: output channel is definer, expression vars are used
+			for (VarIdx output_channel : output_channels) {
+				defined_vars.insert(output_channel);
+			}
+
+			// Find all variables used in the sent expressions
+			for (const auto &term : tran.action.terms) {
+				for (const auto &action : term.actions) {
+					vector<VarIdx> expr_vars = getVarsFromExpression(action.rvalue);
+					for (VarIdx var : expr_vars) {
+						// Exclude the output channel itself from used vars
+						if (std::find(output_channels.begin(), output_channels.end(), var) == output_channels.end()) {
+							used_vars.insert(var);
+						}
+					}
+				}
+			}
+		} else {
+			// Regular assignment semantics
+			for (const auto &[var_idx, chain] : g.useDefChains) {
+				for (TransitionIdx use_idx : chain.uses) {
+					if (use_idx == trans_idx) {
+						used_vars.insert(var_idx);
+					}
+				}
+			}
+
+			for (const auto &[var_idx, chain] : g.useDefChains) {
+				for (TransitionIdx def_idx : chain.defs) {
+					if (def_idx == trans_idx) {
+						defined_vars.insert(var_idx);
+					}
+				}
+			}
+		}
+
+		// Create edges from each used var to each defined var
+		for (VarIdx used_var : used_vars) {
+			for (VarIdx defined_var : defined_vars) {
+				string from_node_id = "var_" + to_string(used_var);
+				string to_node_id = "var_" + to_string(defined_var);
+
+				parse_dot::statement edge_stmt;
+				edge_stmt.valid = true;
+				edge_stmt.statement_type = "edge";
+				edge_stmt.nodes.push_back(new parse_dot::node_id(from_node_id));
+				edge_stmt.nodes.push_back(new parse_dot::node_id(to_node_id));
+
+				parse_dot::attribute_list edge_attrs;
+				edge_attrs.valid = true;
+				parse_dot::assignment_list edge_sub_attrs;
+				edge_sub_attrs.valid = true;
+
+				parse_dot::assignment edge_label;
+				edge_label.valid = true;
+				edge_label.first = "label";
+				edge_label.second = to_string(trans_idx);
+				edge_sub_attrs.as.push_back(edge_label);
+
+				// Color edges based on channel operation
+				if (is_channel_send) {
+					parse_dot::assignment edge_color;
+					edge_color.valid = true;
+					edge_color.first = "color";
+					edge_color.second = "red";
+					edge_sub_attrs.as.push_back(edge_color);
+				} else if (is_channel_recv) {
+					parse_dot::assignment edge_color;
+					edge_color.valid = true;
+					edge_color.first = "color";
+					edge_color.second = "blue";
+					edge_sub_attrs.as.push_back(edge_color);
+				}
+
+				edge_attrs.attributes.push_back(edge_sub_attrs);
+				edge_stmt.attributes = edge_attrs;
+				result.statements.push_back(edge_stmt);
+			}
+		}
+	}
+
+	return result;
+}
+
 }
