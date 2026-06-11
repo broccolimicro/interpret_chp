@@ -9,7 +9,7 @@ CXXFLAGS = -std=c++20 -g -Wall -fmessage-length=0 -O2
 LDFLAGS  =
 else
 CXXFLAGS = -std=c++20 -g -Wall -fmessage-length=0 -O0 --coverage -fprofile-arcs -ftest-coverage
-LDFLAGS  = --coverage -fprofile-arcs -ftest-coverage 
+LDFLAGS  = --coverage -fprofile-arcs -ftest-coverage
 endif
 
 SRCDIR        = $(NAME)
@@ -56,7 +56,7 @@ else
         CXXFLAGS += -D LINUX
     endif
     ifeq ($(UNAME_S),Darwin)
-        CXXFLAGS += -D OSX -mmacos-version-min=15.0 -D GRAPHVIZ_SUPPORTED
+        CXXFLAGS += -D OSX -mmacos-version-min=26.0 -D GRAPHVIZ_SUPPORTED
         TEST_INCLUDE_PATHS += -I$(shell brew --prefix graphviz)/include
         TEST_LIBRARY_PATHS += -L$(shell brew --prefix graphviz)/lib
     endif
@@ -89,7 +89,7 @@ coverage: clean
 $(TARGET): $(OBJECTS)
 	ar rvs $(TARGET) $(OBJECTS)
 
-build/$(SRCDIR)/%.o: $(SRCDIR)/%.cpp 
+build/$(SRCDIR)/%.o: $(SRCDIR)/%.cpp
 	@mkdir -p $(dir $@)
 	@$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) -MM -MF $(patsubst %.o,%.d,$@) -MT $@ $<
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(INCLUDE_PATHS) -c -o $@ $<
