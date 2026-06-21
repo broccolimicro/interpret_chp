@@ -1,5 +1,6 @@
 #include "export_astg.h"
 #include <interpret_arithmetic/export.h>
+#include <parse_astg/expression.h>
 
 namespace chp {
 
@@ -28,8 +29,9 @@ pair<parse_astg::node, parse_astg::node> export_astg(parse_astg::graph &astg, co
 	return loc->second;
 }
 
-parse_astg::graph export_astg(const chp::graph &g)
-{
+parse_astg::graph export_astg(const chp::graph &g) {
+	parse_astg::setup_expressions();
+
 	parse_astg::graph result;
 
 	result.name = "chp";
