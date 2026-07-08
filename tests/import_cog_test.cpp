@@ -7,7 +7,6 @@
 #include <parse/default/block_comment.h>
 #include <parse/default/line_comment.h>
 #include <parse_cog/composition.h>
-#include <parse_cog/branch.h>
 #include <parse_cog/control.h>
 #include <parse_cog/factory.h>
 #include <interpret_chp/import_cog.h>
@@ -27,7 +26,7 @@ chp::graph load_cog_string(string input) {
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
-	parse_cog::register_syntax(tokens);
+	parse_cog::factory.register_syntax(tokens);
 	
 	tokens.insert("string_input", input, nullptr);
 	
@@ -398,9 +397,9 @@ TEST(CogImport, Split) {
 	chp::graph g = load_cog_string(R"(
 while {
 	x = L.recv() and c = C.recv()
-	await c == 0 {
+	if c == 0 {
 		A.send(x)
-	} or await c == 1 {
+	} or if c == 1 {
 		B.send(x)
 	}
 }
@@ -434,8 +433,8 @@ while {
 	auto A = arithmetic::Expression::varOf(vA);
 	auto B = arithmetic::Expression::varOf(vB);
 
-	vector<petri::iterator> c0 = findRule(g, c==0, true);
-	vector<petri::iterator> c1 = findRule(g, c==1, true);
+	vector<petri::iterator> c0 = findRule(g, isTrue(c==0), true);
+	vector<petri::iterator> c1 = findRule(g, isTrue(c==1), true);
 	
 	ASSERT_FALSE(c0.empty());
 	ASSERT_FALSE(c1.empty());
@@ -445,9 +444,9 @@ TEST(CogImport, Merge) {
 	chp::graph g = load_cog_string(R"(
 while {
 	c = C.recv()
-	await c == 0 {
+	if c == 0 {
 		x = A.recv()
-	} or await c == 1 {
+	} or if c == 1 {
 		x = B.recv()
 	}
 	R.send(x)
@@ -482,8 +481,8 @@ while {
 	auto c = arithmetic::Expression::varOf(vc);
 	auto R = arithmetic::Expression::varOf(vR);
 
-	vector<petri::iterator> c0 = findRule(g, c==0, true);
-	vector<petri::iterator> c1 = findRule(g, c==1, true);
+	vector<petri::iterator> c0 = findRule(g, isTrue(c==0), true);
+	vector<petri::iterator> c1 = findRule(g, isTrue(c==1), true);
 	
 	ASSERT_FALSE(c0.empty());
 	ASSERT_FALSE(c1.empty());
