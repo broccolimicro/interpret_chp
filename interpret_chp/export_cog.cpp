@@ -1,4 +1,4 @@
-#include "export_expr.h"
+#include "export_cog.h"
 
 #include <arithmetic/algorithm.h>
 #include <common/message.h>
@@ -59,7 +59,7 @@ parse_expression::operation ExpressionExporter::export_operator(int func) const 
 }
 
 const parse_expression::precedence_set &ExpressionExporter::precedence() const {
-	return parse_cog::expression_config::cfg->order;
+	return expression_config::cfg->order;
 }
 
 parse_expression::expression::argument ExpressionExporter::export_constant(arithmetic::Value value) const {
@@ -130,7 +130,7 @@ parse_expression::operation CompositionExporter::export_operator(int func) const
 }
 
 const parse_expression::precedence_set &CompositionExporter::precedence() const {
-	return parse_cog::composition_config::cfg->order;
+	return composition_config::cfg->order;
 }
 
 parse_expression::expression::argument CompositionExporter::export_action(const arithmetic::Action &expr) const {

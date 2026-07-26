@@ -1,6 +1,7 @@
 #include "import_dot.h"
 #include <interpret_arithmetic/import.h>
 #include <parse_cog/expression.h>
+#include "import_cog.h"
 
 namespace chp {
 
@@ -125,7 +126,7 @@ void import_chp(const parse_dot::statement &syntax, chp::graph &g, map<string, m
 				if (temp.decrement(__FILE__, __LINE__))
 				{
 					parse_cog::simple_composition exp(temp);
-					c = import_composition(exp, g, &temp, 0, true);
+					c = parse_cog::import_composition(exp, g, &temp, 0, true);
 				}
 
 				for (int i = 0; i < (int)n.size(); i++)
