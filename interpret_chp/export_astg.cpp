@@ -30,8 +30,6 @@ pair<parse_astg::node, parse_astg::node> export_astg(parse_astg::graph &astg, co
 }
 
 parse_astg::graph export_astg(const chp::graph &g) {
-	parse_astg::setup_expressions();
-
 	parse_astg::graph result;
 
 	result.name = "chp";

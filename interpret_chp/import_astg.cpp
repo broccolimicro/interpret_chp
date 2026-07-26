@@ -1,5 +1,7 @@
+#include "import_expr.h"
 #include "import_astg.h"
 #include <interpret_arithmetic/import.h>
+#include <interpret_arithmetic/import_default.h>
 
 namespace chp {
 
@@ -27,10 +29,10 @@ chp::iterator import_chp(const parse_astg::node &syntax, chp::graph &g, map<stri
 		arithmetic::Expression guard(true);
 		arithmetic::Choice action;
 		if (syntax.guard.valid) {
-			guard = arithmetic::import_expression(syntax.guard, g, 0, tokens, false);
+			guard = import_expression(syntax.guard, g, tokens, 0, false);
 		}
 		if (syntax.assign.valid) {
-			action = arithmetic::import_choice(syntax.assign, g, 0, tokens, false);
+			action = import_composition(syntax.assign, g, tokens, 0, false);
 		} else {
 			action.terms.push_back(arithmetic::Parallel());
 		}
@@ -58,25 +60,30 @@ chp::graph import_chp(const parse_astg::graph &syntax, tokenizer *tokens)
 	chp::graph result;
 	map<string, chp::iterator> ids;
 	for (int i = 0; i < (int)syntax.inputs.size(); i++)
-		arithmetic::import_net(syntax.inputs[i].to_string(), result, tokens, true);
+		arithmetic::import_literal(syntax.inputs[i].to_string(), result, tokens, true);
 
 	for (int i = 0; i < (int)syntax.outputs.size(); i++)
-		arithmetic::import_net(syntax.outputs[i].to_string(), result, tokens, true);
+		arithmetic::import_literal(syntax.outputs[i].to_string(), result, tokens, true);
 
 	for (int i = 0; i < (int)syntax.internal.size(); i++)
-		arithmetic::import_net(syntax.internal[i].to_string(), result, tokens, true);
+		arithmetic::import_literal(syntax.internal[i].to_string(), result, tokens, true);
 
 	for (int i = 0; i < (int)syntax.arcs.size(); i++)
 		import_chp(syntax.arcs[i], result, ids, tokens);
 
-	for (int i = 0; i < (int)syntax.marking.size(); i++)
-	{
+	for (int i = 0; i < (int)syntax.marking.size(); i++) {
 		chp::state rst;
-		if (syntax.marking[i].first.valid)
-			rst.encodings = arithmetic::import_state(syntax.marking[i].first, result, 0, tokens, false);
+		if (syntax.marking[i].first.valid) {
+			arithmetic::Region region = import_composition(syntax.marking[i].first, result, tokens, 0, false).evaluate(arithmetic::State());
+			if (region.states.size() != 1u) {
+				error("", "expected exactly one reset state", __FILE__, __LINE__);
+			}
+			if (not region.states.empty()) {
+				rst.encodings = region.states[0];
+			}
+		}
 
-		for (int j = 0; j < (int)syntax.marking[i].second.size(); j++)
-		{
+		for (int j = 0; j < (int)syntax.marking[i].second.size(); j++) {
 			chp::iterator loc = import_chp(syntax.marking[i].second[j], result, ids, tokens);
 			if (loc.type == chp::place::type && loc.index >= 0)
 				rst.tokens.push_back(loc.index);

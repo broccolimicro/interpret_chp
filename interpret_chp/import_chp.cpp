@@ -65,7 +65,7 @@ petri::segment import_segment(chp::graph &dst, const parse_chp::control &syntax,
 
 	for (int i = 0; i < (int)syntax.branches.size(); i++) {
 		petri::segment branch;
-		if (syntax.branches[i].first.valid and not arithmetic::import_expression(syntax.branches[i].first, dst, default_id, tokens, auto_define).isValid()) {
+		if (syntax.branches[i].first.valid and not import_expression(syntax.branches[i].first, dst, default_id, tokens, auto_define).isValid()) {
 			branch = dst.compose(petri::sequence, branch, import_segment(dst, syntax.branches[i].first, "await", default_id, tokens, auto_define).nodes);
 		}
 		if (syntax.branches[i].second.valid) {
@@ -103,9 +103,9 @@ petri::segment import_segment(chp::graph &dst, const parse_chp::control &syntax,
 		for (int i = 0; i < (int)syntax.branches.size(); i++) {
 			if (syntax.branches[i].first.valid) {
 				if (i == 0) {
-					repeat = ~arithmetic::import_expression(syntax.branches[i].first, dst, default_id, tokens, auto_define);
+					repeat = ~import_expression(syntax.branches[i].first, dst, default_id, tokens, auto_define);
 				} else {
-					repeat = repeat & !arithmetic::import_expression(syntax.branches[i].first, dst, default_id, tokens, auto_define);
+					repeat = repeat & !import_expression(syntax.branches[i].first, dst, default_id, tokens, auto_define);
 				}
 			} else {
 				repeat = arithmetic::Expression::boolOf(false);
