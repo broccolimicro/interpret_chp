@@ -1,6 +1,7 @@
 #include "export_astg.h"
 #include <interpret_arithmetic/export.h>
 #include <parse_astg/expression.h>
+#include "export_expr.h"
 
 namespace chp {
 
@@ -11,8 +12,8 @@ pair<parse_astg::node, parse_astg::node> export_astg(parse_astg::graph &astg, co
 		if (pos.type == chp::transition::type) {
 			pair<parse_astg::node, parse_astg::node> inout;
 
-			parse_astg::expression guard = export_expression<parse_astg::expression>(g.transitions[pos.index].guard, g);
-			parse_astg::composition action = export_composition<parse_astg::composition>(g.transitions[pos.index].action, g);
+			parse_astg::expression guard = parse_cog::export_expression(g.transitions[pos.index].guard, g);
+			parse_astg::composition action = parse_cog::export_composition(g.transitions[pos.index].action, g);
 			inout.first = parse_astg::node(guard, action, tlabel);
 			inout.second = inout.first;
 
@@ -36,7 +37,7 @@ parse_astg::graph export_astg(const chp::graph &g) {
 
 	// Add the variables
 	for (int i = 0; i < (int)g.vars.size(); i++)
-		result.internal.push_back(arithmetic::export_net<parse_astg::expression>(i, g));
+		result.internal.push_back(parse_cog::export_expression(arithmetic::Expression::varOf(i), g));
 
 	// Add the arcs
 	map<chp::iterator, pair<parse_astg::node, parse_astg::node> > nodes;
@@ -92,7 +93,7 @@ parse_astg::graph export_astg(const chp::graph &g) {
 	for (int i = 0; i < (int)g.reset.size(); i++)
 	{
 		result.marking.push_back(pair<parse_astg::composition, vector<parse_astg::node> >());
-		result.marking.back().first = export_composition<parse_astg::composition>(g.reset[i].encodings, g);
+		result.marking.back().first = parse_cog::export_composition(arithmetic::Parallel(g.reset[i].encodings), g);
 		for (int j = 0; j < (int)g.reset[i].tokens.size(); j++)
 			result.marking.back().second.push_back(parse_astg::node("p" + to_string(g.reset[i].tokens[j].index)));
 	}
