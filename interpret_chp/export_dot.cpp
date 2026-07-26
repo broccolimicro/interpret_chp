@@ -1,7 +1,5 @@
 #include "export_dot.h"
 
-#include <chp/expression.h>
-
 namespace chp {
 
 parse_dot::node_id export_node_id(const chp::iterator &i)
@@ -106,12 +104,12 @@ parse_dot::attribute_list export_attribute_list(const chp::iterator i, const chp
 		bool a_vacuous = g.transitions[i.index].action.isVacuous();
 
 		if (!g_vacuous && !a_vacuous) {
-			action.second = emit_expression(g.transitions[i.index].guard, g) + " -> " +
-			                emit_composition(g.transitions[i.index].action, g);
+			action.second = g.transitions[i.index].guard.to_string(false, g) + " -> " +
+			                g.transitions[i.index].action.to_string(false, g);
 		} else if (!g_vacuous) {
-			action.second = emit_expression(g.transitions[i.index].guard, g) + " -> skip";
+			action.second = g.transitions[i.index].guard.to_string(false, g) + " -> skip";
 		} else {
-			action.second = emit_composition(g.transitions[i.index].action, g);
+			action.second = g.transitions[i.index].action.to_string(false, g);
 		}
 
 		if (notations) {
