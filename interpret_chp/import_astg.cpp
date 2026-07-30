@@ -1,6 +1,6 @@
 #include "import_expr.h"
 #include "import_astg.h"
-#include <interpret_arithmetic/import.h>
+#include <parse_expression/import.h>
 #include <interpret_arithmetic/import_default.h>
 
 namespace parse_astg {
@@ -272,7 +272,7 @@ arithmetic::Choice CompositionImporter::import_modifier(parse_expression::operat
 	if (op.is("", "'", "", "")) {
 		return args[0];
 	}
-	return arithmetic::Importer<arithmetic::Choice>::import_modifier(op, args, tokens);
+	return parse_expression::Importer<arithmetic::Choice>::import_modifier(op, args, tokens);
 }
 
 arithmetic::Choice CompositionImporter::import_binary(parse_expression::operation op, arithmetic::Choice left, arithmetic::Choice right, tokenizer *tokens) const {

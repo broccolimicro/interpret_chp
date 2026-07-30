@@ -9,12 +9,12 @@
 #include <parse_astg/arc.h>
 #include <parse_astg/graph.h>
 
-#include <interpret_arithmetic/import.h>
+#include <parse_expression/import.h>
 #include <parse_astg/expression.h>
 
 namespace parse_astg {
 
-struct ExpressionImporter : arithmetic::Importer<arithmetic::Expression> {
+struct ExpressionImporter : parse_expression::Importer<arithmetic::Expression> {
 	ucs::Netlist symbols;
 	vector<int> region;
 	bool autoDefine;
@@ -33,7 +33,7 @@ struct ExpressionImporter : arithmetic::Importer<arithmetic::Expression> {
 
 arithmetic::Expression import_expression(const parse_expression::expression &syntax, ucs::Netlist nets, tokenizer *tokens, int region = 0, bool auto_define = false);
 
-struct CompositionImporter : arithmetic::Importer<arithmetic::Choice> {
+struct CompositionImporter : parse_expression::Importer<arithmetic::Choice> {
 	ucs::Netlist symbols;
 	vector<int> region;
 	bool autoDefine;
