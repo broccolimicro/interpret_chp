@@ -12,7 +12,6 @@
 
 #include <parse_expression/expression.h>
 #include <parse_expression/assignment.h>
-
 #include <parse_expression/import.h>
 #include <interpret_chp/import_expr.h>
 
@@ -59,12 +58,16 @@ arithmetic::Choice import_composition(const parse_expression::expression &syntax
 chp::segment import_segment(chp::graph &dst, const parse_expression::expression &syntax, string func, int default_id, tokenizer *tokens, bool auto_define);
 chp::segment import_segment(chp::graph &dst, const assignment &syntax, int default_id, tokenizer *tokens, bool auto_define);
 
+}
+
+namespace chp {
+
 // COG
 
-chp::segment import_segment(chp::graph &dst, const composition &syntax, int default_id, tokenizer *tokens, bool auto_define);
-chp::segment import_segment(chp::graph &dst, const control &syntax, int default_id, tokenizer *tokens, bool auto_define);
-chp::segment import_segment(chp::graph &dst, const declaration &syntax, int default_id, tokenizer *tokens, bool auto_define);
+chp::segment import_segment(chp::graph &dst, const parse_cog::composition &syntax, int default_id, tokenizer *tokens, bool auto_define);
+chp::segment import_segment(chp::graph &dst, const parse_cog::control &syntax, int default_id, tokenizer *tokens, bool auto_define);
+chp::segment import_segment(chp::graph &dst, const parse_cog::declaration &syntax, int default_id, tokenizer *tokens, bool auto_define);
 chp::segment import_segment(chp::graph &dst, const parse::syntax *syntax, int default_id, tokenizer *tokens, bool auto_define);
-void import_chp(chp::graph &dst, const composition &syntax, tokenizer *tokens, bool auto_define);
+void import_chp(chp::graph &dst, const parse_cog::composition &syntax, tokenizer *tokens, bool auto_define);
 
 }

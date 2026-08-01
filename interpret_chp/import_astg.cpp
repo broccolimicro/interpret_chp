@@ -316,6 +316,9 @@ chp::segment import_segment(chp::graph &dst, const assignment &syntax, int defau
 	return result;
 }
 
+}
+
+namespace chp {
 
 chp::iterator import_chp(const parse_astg::node &syntax, chp::graph &g, map<string, chp::iterator> &ids, tokenizer *tokens)
 {

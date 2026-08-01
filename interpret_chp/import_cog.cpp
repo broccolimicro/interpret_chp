@@ -118,7 +118,7 @@ arithmetic::Expression ExpressionImporter::import_binary(parse_expression::opera
 	} else if (op.is("", "", "%", "")) {
 		return left % right;
 	}
-	internal("", "unrecognized operation", __FILE__, __LINE__);
+	internal("", "unrecognized operation " + op.to_string(), __FILE__, __LINE__);
 	return left;
 }
 
@@ -319,19 +319,23 @@ chp::segment import_segment(chp::graph &dst, const assignment &syntax, int defau
 	return result;
 }
 
-chp::segment import_segment(chp::graph &dst, const composition &syntax, int default_id, tokenizer *tokens, bool auto_define) {
+}
+
+namespace chp {
+
+chp::segment import_segment(chp::graph &dst, const parse_cog::composition &syntax, int default_id, tokenizer *tokens, bool auto_define) {
 	bool arbiter = false;
 	bool synchronizer = false;
 
 	int composition = petri::parallel;
-	if (syntax.level == composition::SEQUENCE or syntax.level == composition::INTERNAL_SEQUENCE) {
+	if (syntax.level == parse_cog::composition::SEQUENCE or syntax.level == parse_cog::composition::INTERNAL_SEQUENCE) {
 		composition = petri::sequence;
-	} else if (syntax.level == composition::CONDITION) {
+	} else if (syntax.level == parse_cog::composition::CONDITION) {
 		composition = petri::choice;
-	} else if (syntax.level == composition::CHOICE) {
+	} else if (syntax.level == parse_cog::composition::CHOICE) {
 		composition = petri::choice;
 		arbiter = true;
-	} else if (syntax.level == composition::PARALLEL) {
+	} else if (syntax.level == parse_cog::composition::PARALLEL) {
 		composition = petri::parallel;
 	}
 
@@ -417,7 +421,7 @@ chp::segment import_segment(chp::graph &dst, const composition &syntax, int defa
 	return result;
 }
 
-chp::segment import_segment(chp::graph &dst, const control &syntax, int default_id, tokenizer *tokens, bool auto_define) {
+chp::segment import_segment(chp::graph &dst, const parse_cog::control &syntax, int default_id, tokenizer *tokens, bool auto_define) {
 	if (syntax.region != "") {
 		default_id = atoi(syntax.region.c_str());
 	}
@@ -449,7 +453,7 @@ chp::segment import_segment(chp::graph &dst, const control &syntax, int default_
 	return result;
 }
 
-chp::segment import_segment(chp::graph &dst, const declaration &syntax, int default_id, tokenizer *tokens, bool auto_define) {
+chp::segment import_segment(chp::graph &dst, const parse_cog::declaration &syntax, int default_id, tokenizer *tokens, bool auto_define) {
 	// TODO(edward.bingham) handle the variable creation
 	//dst.create(chp::variable());
 
@@ -458,20 +462,20 @@ chp::segment import_segment(chp::graph &dst, const declaration &syntax, int defa
 
 chp::segment import_segment(chp::graph &dst, const parse::syntax *syntax, int default_id, tokenizer *tokens, bool auto_define) {
 	if (syntax != nullptr and syntax->valid) {
-		if (syntax->is_a<composition>()) {
-			return import_segment(dst, syntax->get<composition>(), default_id, tokens, auto_define);
-		} else if (syntax->is_a<control>()) {
-			return import_segment(dst, syntax->get<control>(), default_id, tokens, auto_define);
-		} else if (syntax->is_a<assignment>()) {
-			return import_segment(dst, syntax->get<assignment>(), default_id, tokens, auto_define);
-		} else if (syntax->is_a<declaration>()) {
-			return import_segment(dst, syntax->get<declaration>(), default_id, tokens, auto_define);
+		if (syntax->is_a<parse_cog::composition>()) {
+			return import_segment(dst, syntax->get<parse_cog::composition>(), default_id, tokens, auto_define);
+		} else if (syntax->is_a<parse_cog::control>()) {
+			return import_segment(dst, syntax->get<parse_cog::control>(), default_id, tokens, auto_define);
+		} else if (syntax->is_a<parse_cog::assignment>()) {
+			return import_segment(dst, syntax->get<parse_cog::assignment>(), default_id, tokens, auto_define);
+		} else if (syntax->is_a<parse_cog::declaration>()) {
+			return import_segment(dst, syntax->get<parse_cog::declaration>(), default_id, tokens, auto_define);
 		}
 	}
 	return chp::segment(true);
 }
 
-void import_chp(chp::graph &dst, const composition &syntax, tokenizer *tokens, bool auto_define) {
+void import_chp(chp::graph &dst, const parse_cog::composition &syntax, tokenizer *tokens, bool auto_define) {
 	petri::segment result = import_segment(dst, syntax, 0, tokens, auto_define).nodes;
 	if (not result.reset.empty()) {
 		result.source = result.reset;

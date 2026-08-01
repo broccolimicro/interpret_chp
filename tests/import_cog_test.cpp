@@ -37,7 +37,7 @@ chp::graph load_cog_string(string input) {
 	tokens.expect<parse_cog::composition>();
 	if (tokens.decrement(__FILE__, __LINE__)) {
 		parse_cog::composition syntax(tokens);
-		parse_cog::import_chp(g, syntax, &tokens, true);
+		chp::import_chp(g, syntax, &tokens, true);
 	}
 
 	g.post_process();

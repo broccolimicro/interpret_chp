@@ -58,10 +58,14 @@ arithmetic::Choice import_composition(const parse_expression::expression &syntax
 chp::segment import_segment(chp::graph &dst, const parse_expression::expression &syntax, string func, int default_id, tokenizer *tokens, bool auto_define);
 chp::segment import_segment(chp::graph &dst, const assignment &syntax, int default_id, tokenizer *tokens, bool auto_define);
 
-// CHP
+}
 
+namespace chp {
+
+// CHP
 petri::segment import_segment(chp::graph &dst, const parse_chp::composition &syntax, int default_id, tokenizer *tokens, bool auto_define);
 petri::segment import_segment(chp::graph &dst, const parse_chp::control &syntax, int default_id, tokenizer *tokens, bool auto_define);
+
 void import_chp(chp::graph &dst, const parse_chp::composition &syntax, tokenizer *tokens, bool auto_define);
 
 }

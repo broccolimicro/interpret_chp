@@ -321,6 +321,9 @@ chp::segment import_segment(chp::graph &dst, const assignment &syntax, int defau
 	return result;
 }
 
+}
+
+namespace chp {
 
 petri::segment import_segment(chp::graph &dst, const parse_chp::composition &syntax, int default_id, tokenizer *tokens, bool auto_define) {
 	if (syntax.region != "") {

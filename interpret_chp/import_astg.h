@@ -12,6 +12,8 @@
 #include <parse_expression/import.h>
 #include <parse_astg/expression.h>
 
+#include "import_expr.h"
+
 namespace parse_astg {
 
 struct ExpressionImporter : parse_expression::Importer<arithmetic::Expression> {
@@ -54,6 +56,10 @@ arithmetic::Choice import_composition(const parse_expression::expression &syntax
 
 chp::segment import_segment(chp::graph &dst, const parse_expression::expression &syntax, string func, int default_id, tokenizer *tokens, bool auto_define);
 chp::segment import_segment(chp::graph &dst, const assignment &syntax, int default_id, tokenizer *tokens, bool auto_define);
+
+}
+
+namespace chp {
 
 // ASTG
 

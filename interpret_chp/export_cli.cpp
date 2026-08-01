@@ -1,6 +1,6 @@
 #include "export_cli.h"
 
-namespace chp {
+namespace parse_chp {
 
 string export_transition(const chp::graph &g, petri::iterator i, bool is_guard, bool here) {
 	string result;
