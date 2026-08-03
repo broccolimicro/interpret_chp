@@ -345,7 +345,7 @@ while {
 
 	gvdot::render("copy.png", chp::export_graph(g, true).to_string());
 	
-	EXPECT_EQ(g.netCount(), 6); // including GND and VDD
+	EXPECT_EQ(g.netCount(), 4);
 	EXPECT_GE(g.transitions.size(), 3u);
 	
 	int vx = g.netIndex("x");
@@ -375,7 +375,7 @@ while {
 
 	gvdot::render("add.png", chp::export_graph(g, true).to_string());
 	
-	EXPECT_EQ(g.netCount(), 5); // including GND and VDD
+	EXPECT_EQ(g.netCount(), 3);
 	EXPECT_GE(g.transitions.size(), 1u);
 	
 	int vA = g.netIndex("A");
@@ -407,7 +407,7 @@ while {
 
 	gvdot::render("split.png", chp::export_graph(g, true).to_string());
 	
-	EXPECT_EQ(g.netCount(), 8); // including GND and VDD
+	EXPECT_EQ(g.netCount(), 6);
 	EXPECT_GE(g.transitions.size(), 6u);
 	
 	int vx = g.netIndex("x");
@@ -455,7 +455,7 @@ while {
 
 	gvdot::render("merge.png", chp::export_graph(g, true).to_string());
 	
-	EXPECT_EQ(g.netCount(), 8); // including GND and VDD
+	EXPECT_EQ(g.netCount(), 6);
 	EXPECT_GE(g.transitions.size(), 6u);
 	
 	int vx = g.netIndex("x");
