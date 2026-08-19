@@ -4,6 +4,7 @@
 #include <common/standard.h>
 #include <parse_expression/import.h>
 #include <interpret_arithmetic/import_default.h>
+#include <arithmetic/algorithm.h>
 //#include "export_astg.h"
 
 namespace parse_cog {
@@ -153,6 +154,23 @@ arithmetic::Expression ExpressionImporter::import_modifier(parse_expression::ope
 	} else*/ if (op.is("", "'", "", "")) { // Region
 		// only affects properties
 		return args[0];
+	} else if (op.is("(", ")", "", "")) { // Cast
+		if (args.size() != 2u) {
+			error("", "type cast expects two arguments", __FILE__, __LINE__);
+			return arithmetic::Expression();
+		}
+		if (not args[0].isConstant()) {
+			error("", "type cast expects typename", __FILE__, __LINE__);
+			return arithmetic::Expression();
+		}
+
+		arithmetic::Value type = arithmetic::evaluateConstExpr(args[0], args[0].top);
+		if (type.type != arithmetic::Value::LABEL) {
+			error("", "type cast expects typename", __FILE__, __LINE__);
+			return arithmetic::Expression();
+		}
+
+		return arithmetic::cast(type.sval, args[1]);
 	} else if (op.is("", ".", "", "")) { // Member
 		return arithmetic::Expression(arithmetic::Operation::MEMBER, args);
 	// DESIGN(edward.bingham) Move "this" into the first argument of the
