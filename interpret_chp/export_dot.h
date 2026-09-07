@@ -13,11 +13,11 @@
 namespace chp {
 
 parse_dot::node_id export_node_id(const chp::iterator &i);
-parse_dot::attribute_list export_attribute_list(const chp::iterator i, const chp::graph &g, bool labels=false, bool notations=false);
-parse_dot::statement export_statement(const chp::iterator &i, const chp::graph &g, bool labels=false, bool notations=false);
-parse_dot::statement export_statement(const pair<int, int> &a, const chp::graph &g, bool labels=false, bool notations=false);
+parse_dot::attribute_list export_attribute_list(const chp::iterator i, const chp::graph &g, const petri::CompositionAnalysis &comp, bool labels=false);
+parse_dot::statement export_statement(const chp::iterator &i, const chp::graph &g, const petri::CompositionAnalysis &comp, bool labels=false);
+parse_dot::statement export_statement(const pair<int, int> &a, const chp::graph &g, bool labels=false);
 parse_dot::graph export_graph(const chp::graph &g, bool labels=false, bool notations=false);
 //TODO(steven.kneiser): migrate export_analysis from chp::graph to [chp::useDefChain et al.]
-parse_dot::graph export_analysis(const chp::graph &g, bool labels=false, bool notations=false);
+parse_dot::graph export_analysis(const chp::graph &g);
 
 }

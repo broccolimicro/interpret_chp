@@ -342,19 +342,19 @@ chp::segment import_segment(chp::graph &dst, const parse_cog::composition &synta
 	bool arbiter = false;
 	bool synchronizer = false;
 
-	int composition = petri::parallel;
+	petri::Composition composition = petri::PARALLEL;
 	if (syntax.level == parse_cog::composition::SEQUENCE or syntax.level == parse_cog::composition::INTERNAL_SEQUENCE) {
-		composition = petri::sequence;
+		composition = petri::SEQUENCE;
 	} else if (syntax.level == parse_cog::composition::CONDITION) {
-		composition = petri::choice;
+		composition = petri::CHOICE;
 	} else if (syntax.level == parse_cog::composition::CHOICE) {
-		composition = petri::choice;
+		composition = petri::CHOICE;
 		arbiter = true;
 	} else if (syntax.level == parse_cog::composition::PARALLEL) {
-		composition = petri::parallel;
+		composition = petri::PARALLEL;
 	}
 
-	chp::segment result(composition != petri::choice);
+	chp::segment result(composition != petri::CHOICE);
 	for (int i = 0; i < (int)syntax.branches.size(); i++) {
 		chp::segment branch = import_segment(dst, syntax.branches[i].get(), default_id, tokens, auto_define);
 		result = compose(dst, composition, result, branch);
@@ -373,13 +373,13 @@ chp::segment import_segment(chp::graph &dst, const parse_cog::composition &synta
 	// any places before those transitions then we need to create
 	// them
 
-	if (result.nodes.source.size() > 1u and composition == petri::choice) {
+	if (result.nodes.source.size() > 1u and composition == petri::CHOICE) {
 		petri::iterator from = dst.create(chp::place());
 		dst.connect({{from}}, result.nodes.source);
 		result.nodes.source = petri::bound({{from}});
 	}
 
-	if (result.nodes.sink.size() > 1u and composition == petri::choice) {
+	if (result.nodes.sink.size() > 1u and composition == petri::CHOICE) {
 		petri::iterator to = dst.create(chp::place());
 		dst.connect(result.nodes.sink, {{to}});
 		result.nodes.sink = petri::bound({{to}});
@@ -410,7 +410,7 @@ chp::segment import_segment(chp::graph &dst, const parse_cog::composition &synta
 		}
 	}
 
-	if (result.loop and composition == petri::choice and not arbiter and not result.nodes.source.empty()) {
+	if (result.loop and composition == petri::CHOICE and not arbiter and not result.nodes.source.empty()) {
 		arithmetic::Expression skipCond = ~result.cond;
 		if (not skipCond.isNull()) {
 			petri::iterator arrow = dst.create(chp::place());
@@ -444,11 +444,11 @@ chp::segment import_segment(chp::graph &dst, const parse_cog::control &syntax, i
 	chp::segment result(true);
 	if (syntax.guard.valid) {
 		chp::segment sub = import_segment(dst, syntax.guard, syntax.kind, default_id, tokens, auto_define);
-		result = compose(dst, petri::sequence, result, sub);
+		result = compose(dst, petri::SEQUENCE, result, sub);
 	}
 	if (syntax.action.valid) {
 		chp::segment sub = import_segment(dst, syntax.action, default_id, tokens, auto_define);
-		result = compose(dst, petri::sequence, result, sub);
+		result = compose(dst, petri::SEQUENCE, result, sub);
 	}
 
 	if (syntax.kind == "while" and not result.nodes.source.empty()) {

@@ -329,11 +329,11 @@ petri::segment import_segment(chp::graph &dst, const parse_chp::composition &syn
 
 	petri::segment result;
 
-	int composition = petri::parallel;
+	petri::Composition composition = petri::PARALLEL;
 	if (parse_chp::composition::precedence[syntax.level] == "||" or parse_chp::composition::precedence[syntax.level] == ",") {
-		composition = petri::parallel;
+		composition = petri::PARALLEL;
 	} else if (parse_chp::composition::precedence[syntax.level] == ";") {
-		composition = petri::sequence;
+		composition = petri::SEQUENCE;
 	}
 
 	for (int i = 0; i < (int)syntax.branches.size(); i++) {
@@ -384,13 +384,13 @@ petri::segment import_segment(chp::graph &dst, const parse_chp::control &syntax,
 	for (int i = 0; i < (int)syntax.branches.size(); i++) {
 		petri::segment branch;
 		if (syntax.branches[i].first.valid and not import_expression(syntax.branches[i].first, dst, tokens, default_id, auto_define).isValid()) {
-			branch = dst.compose(petri::sequence, branch, import_segment(dst, syntax.branches[i].first, "await", default_id, tokens, auto_define).nodes);
+			branch = dst.compose(petri::SEQUENCE, branch, import_segment(dst, syntax.branches[i].first, "await", default_id, tokens, auto_define).nodes);
 		}
 		if (syntax.branches[i].second.valid) {
-			branch = dst.compose(petri::sequence, branch, import_segment(dst, syntax.branches[i].second, default_id, tokens, auto_define));
+			branch = dst.compose(petri::SEQUENCE, branch, import_segment(dst, syntax.branches[i].second, default_id, tokens, auto_define));
 		}
 
-		result = dst.compose(petri::choice, result, branch);
+		result = dst.compose(petri::CHOICE, result, branch);
 	}
 
 	if (result.source.size() > 1u) {

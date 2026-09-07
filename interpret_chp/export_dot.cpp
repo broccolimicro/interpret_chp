@@ -10,8 +10,7 @@ parse_dot::node_id export_node_id(const chp::iterator &i)
 	return result;
 }
 
-parse_dot::attribute_list export_attribute_list(const chp::iterator i, const chp::graph &g, bool labels, bool notations)
-{
+parse_dot::attribute_list export_attribute_list(const chp::iterator i, const chp::graph &g, const petri::CompositionAnalysis &comp, bool labels) {
 	parse_dot::attribute_list result;
 	result.valid = true;
 	parse_dot::assignment_list sub_result;
@@ -44,7 +43,7 @@ parse_dot::attribute_list export_attribute_list(const chp::iterator i, const chp
 			marked.second = "filled";
 
 			sub_result.as.push_back(marked);
-			if (!notations) {
+			if (comp.empty()) {
 				parse_dot::assignment color;
 				color.valid = true;
 				color.first = "fillcolor";
@@ -76,16 +75,16 @@ parse_dot::attribute_list export_attribute_list(const chp::iterator i, const chp
 		encoding.first = "label";
 		encoding.second = "";
 
-		if (notations) {
+		if (not comp.empty()) {
 			if (encoding.second != "") {
 				encoding.second += "\n";
 			}
 			encoding.second += "[";
-			for (int j = 0; j < (int)g.places[i.index].splits[petri::parallel].size(); j++) {
+			for (int j = 0; j < (int)comp.places[i.index].splits[petri::PARALLEL].size(); j++) {
 				if (j != 0) {
 					encoding.second += ",";
 				}
-				encoding.second += g.places[i.index].splits[petri::parallel][j].to_string();
+				encoding.second += comp.places[i.index].splits[petri::PARALLEL][j].to_string();
 			}
 			encoding.second += "]";
 		}
@@ -112,16 +111,16 @@ parse_dot::attribute_list export_attribute_list(const chp::iterator i, const chp
 			action.second = g.transitions[i.index].action.to_string(false, g);
 		}
 
-		if (notations) {
+		if (not comp.empty()) {
 			if (action.second != "") {
 				action.second += "\n";
 			}
 			action.second += "[";
-			for (int j = 0; j < (int)g.transitions[i.index].splits[petri::parallel].size(); j++) {
+			for (int j = 0; j < (int)comp.transitions[i.index].splits[petri::PARALLEL].size(); j++) {
 				if (j != 0) {
 					action.second += ",";
 				}
-				action.second += g.transitions[i.index].splits[petri::parallel][j].to_string();
+				action.second += comp.transitions[i.index].splits[petri::PARALLEL][j].to_string();
 			}
 			action.second += "]";
 		}
@@ -140,18 +139,16 @@ parse_dot::attribute_list export_attribute_list(const chp::iterator i, const chp
 	return result;
 }
 
-parse_dot::statement export_statement(const chp::iterator &i, const chp::graph &g, bool labels, bool notations)
-{
+parse_dot::statement export_statement(const chp::iterator &i, const chp::graph &g, const petri::CompositionAnalysis &comp, bool labels) {
 	parse_dot::statement result;
 	result.valid = true;
 	result.statement_type = "node";
 	result.nodes.push_back(new parse_dot::node_id(export_node_id(i)));
-	result.attributes = export_attribute_list(i, g, labels, notations);
+	result.attributes = export_attribute_list(i, g, comp, labels);
 	return result;
 }
 
-parse_dot::statement export_statement(const pair<int, int> &a, const chp::graph &g, bool labels, bool notations)
-{
+parse_dot::statement export_statement(const pair<int, int> &a, const chp::graph &g, bool labels) {
 	parse_dot::statement result;
 	result.valid = true;
 	result.statement_type = "edge";
@@ -164,8 +161,7 @@ parse_dot::statement export_statement(const pair<int, int> &a, const chp::graph 
 	label.first = "xlabel";
 	label.second = "A" + to_string(a.first) + "." + to_string(a.second);
 	attr.as.push_back(label);
-	if (labels)
-	{
+	if (labels) {
 		result.attributes.valid = true;
 		result.attributes.attributes.push_back(attr);
 	}
@@ -180,29 +176,33 @@ parse_dot::graph export_graph(const chp::graph &g, bool labels, bool notations)
 	result.id = g.name;
 	result.type = "digraph";
 
+	petri::CompositionAnalysis comp;
+	if (notations) {
+		comp.build(g.adjacency());
+	}
+
 	for (int i = 0; i < (int)g.places.size(); i++) {
 		if (not g.places.is_valid(i)) continue;
 
-		result.statements.push_back(export_statement(chp::iterator(chp::place::type, i), g, labels, notations));
+		result.statements.push_back(export_statement(chp::iterator(chp::place::type, i), g, comp, labels));
 	}
 
 	for (int i = 0; i < (int)g.transitions.size(); i++) {
 		if (not g.transitions.is_valid(i)) continue;
 
-		result.statements.push_back(export_statement(chp::iterator(chp::transition::type, i), g, labels, notations));
+		result.statements.push_back(export_statement(chp::iterator(chp::transition::type, i), g, comp, labels));
 	}
 
 	for (int i = 0; i < 2; i++) {
 		for (int j = 0; j < (int)g.arcs[i].size(); j++) {
-			result.statements.push_back(export_statement(pair<int, int>(i, j), g, labels, notations));
+			result.statements.push_back(export_statement(pair<int, int>(i, j), g, labels));
 		}
 	}
 
 	return result;
 }
 
-parse_dot::graph export_analysis(const chp::graph &g, bool labels, bool notations)
-{
+parse_dot::graph export_analysis(const chp::graph &g) {
 	parse_dot::graph result;
 	result.valid = true;
 	result.id = g.name + "_analysis";
