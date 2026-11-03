@@ -154,23 +154,6 @@ arithmetic::Expression ExpressionImporter::import_modifier(parse_expression::ope
 	} else*/ if (op.is("", "'", "", "")) { // Region
 		// only affects properties
 		return args[0];
-	} else if (op.is("(", ")", "", "")) { // Cast
-		if (args.size() != 2u) {
-			error("", "type cast expects two arguments", __FILE__, __LINE__);
-			return arithmetic::Expression();
-		}
-		if (not args[0].isConstant()) {
-			error("", "type cast expects typename", __FILE__, __LINE__);
-			return arithmetic::Expression();
-		}
-
-		arithmetic::Value type = arithmetic::evaluateConstExpr(args[0], args[0].top);
-		if (type.type != arithmetic::Value::LABEL) {
-			error("", "type cast expects typename", __FILE__, __LINE__);
-			return arithmetic::Expression();
-		}
-
-		return arithmetic::cast(type.sval, args[1]);
 	} else if (op.is("", ".", "", "")) { // Member
 		return arithmetic::Expression(arithmetic::Operation::MEMBER, args);
 	// DESIGN(edward.bingham) Move "this" into the first argument of the
@@ -197,18 +180,36 @@ arithmetic::Expression ExpressionImporter::import_modifier(parse_expression::ope
 			args.insert(args.begin(), name);
 
 			return arithmetic::Expression(arithmetic::Operation::MEMBER_CALL, args);
-		// Replace built-in functions
-		} else if (args[0].top.isConst() and args[0].top.cnst.type == arithmetic::Value::STRING and args[0].top.cnst.sval == "valid") {
-			if      (args.size() == 1u) { return arithmetic::Expression::vdd(); }
-			else if (args.size() == 2u) { return arithmetic::isValid(args[1]); }
-			else { error("", "valid() function expects 1 argument, found " + ::to_string(args.size()-1), __FILE__, __LINE__); }
-		} else if (args[0].top.isConst() and args[0].top.cnst.type == arithmetic::Value::STRING and args[0].top.cnst.sval == "true") {
-			if      (args.size() == 1u) { return arithmetic::Expression::boolOf(true); }
-			else if (args.size() == 2u) { return arithmetic::isTrue(args[1]); }
-			else { error("", "true() function expects 1 argument, found " + ::to_string(args.size()-1), __FILE__, __LINE__); }
-		} else {
-			return arithmetic::Expression(arithmetic::Operation::CALL, args);
 		}
+
+		// Replace built-in functions
+		if (args[0].isConstant()) {
+			arithmetic::Value type = arithmetic::evaluateConstExpr(args[0], args[0].top);
+			if (type.type != arithmetic::Value::LABEL) {
+				error("", "function call expects typename", __FILE__, __LINE__);
+				return arithmetic::Expression();
+			}
+
+			if (type.sval == "valid") {
+				if      (args.size() == 1u) { return arithmetic::Expression::vdd(); }
+				else if (args.size() == 2u) { return arithmetic::isValid(args[1]); }
+				else { error("", "valid() function expects 1 argument, found " + ::to_string(args.size()-1), __FILE__, __LINE__); }
+			} else if (type.sval == "true") {
+				if      (args.size() == 1u) { return arithmetic::Expression::boolOf(true); }
+				else if (args.size() == 2u) { return arithmetic::isTrue(args[1]); }
+				else { error("", "true() function expects 1 argument, found " + ::to_string(args.size()-1), __FILE__, __LINE__); }
+			} else if (type.sval == "bool" or type.sval == "wire" or type.sval == "fixed" or type.sval == "chan") { // Cast
+				// TODO(edward.bingham) search through the defined types for the constructor
+				if (args.size() != 2u) {
+					error("", "type cast expects two arguments", __FILE__, __LINE__);
+					return arithmetic::Expression();
+				}
+
+				return arithmetic::cast(type.sval, args[1]);
+			}
+		}
+
+		return arithmetic::Expression(arithmetic::Operation::CALL, args);
 	// END DESIGN
 	} else if (op.is("", "[", ":", "]")) {
 		return arithmetic::Expression(arithmetic::Operation::INDEX, args);
@@ -314,9 +315,9 @@ arithmetic::Choice import_composition(const parse_expression::expression &syntax
 chp::segment import_segment(chp::graph &dst, const parse_expression::expression &syntax, string func, int default_id, tokenizer *tokens, bool auto_define) {
 	chp::segment result(false);
 	result.cond = import_expression(syntax, dst, tokens, default_id, auto_define);
-	if (func == "await") {
+	if (func == "await" or func == "until" or func == "when") {
 		result.cond = arithmetic::isValid(result.cond);
-	} else if (func == "if") {
+	} else if (func == "if" or func == "unless" or func == "while") {
 		result.cond = arithmetic::isTrue(result.cond);
 	}
 	petri::iterator t = dst.create(chp::transition(result.cond));
@@ -357,7 +358,7 @@ chp::segment import_segment(chp::graph &dst, const parse_cog::composition &synta
 	chp::segment result(composition != petri::CHOICE);
 	for (int i = 0; i < (int)syntax.branches.size(); i++) {
 		chp::segment branch = import_segment(dst, syntax.branches[i].get(), default_id, tokens, auto_define);
-		result = compose(dst, composition, result, branch);
+		result = compose(dst, composition, result, branch, true);
 	}
 
 	if (syntax.branches.size() == 0) {
@@ -375,7 +376,22 @@ chp::segment import_segment(chp::graph &dst, const parse_cog::composition &synta
 
 	if (result.nodes.source.size() > 1u and composition == petri::CHOICE) {
 		petri::iterator from = dst.create(chp::place());
-		dst.connect({{from}}, result.nodes.source);
+		// TODO(edward.bingham) Talk to Steven about this. This approach merges the
+		// when and while loops into the larger conditional.
+
+		for (const petri::region &r : result.nodes.source.regions) {
+			if (r.nodes.size() == 1u and r.nodes[0].type == petri::place::type) {
+				dst.connect(from, dst.next(r.nodes[0]));
+				dst.connect(dst.prev(r.nodes[0]), from);
+				dst.erase(r.nodes[0]);
+			} else {
+				dst.connect(from, r);
+			}
+		}
+
+		// vs this approach which just adds skips
+		//dst.connect({{from}}, result.source.nodes);
+
 		result.nodes.source = petri::bound({{from}});
 	}
 
@@ -411,7 +427,7 @@ chp::segment import_segment(chp::graph &dst, const parse_cog::composition &synta
 	}
 
 	if (result.loop and composition == petri::CHOICE and not arbiter and not result.nodes.source.empty()) {
-		arithmetic::Expression skipCond = ~result.cond;
+		arithmetic::Expression skipCond = result.cond;
 		if (not skipCond.isNull()) {
 			petri::iterator arrow = dst.create(chp::place());
 			for (auto i = result.nodes.source.begin(); i != result.nodes.source.end(); i++) {
@@ -442,26 +458,61 @@ chp::segment import_segment(chp::graph &dst, const parse_cog::control &syntax, i
 	}
 
 	chp::segment result(true);
-	if (syntax.guard.valid) {
+	if (syntax.guard.valid and (syntax.kind == "await" or syntax.kind == "if" or syntax.kind == "when" or syntax.kind == "while")) {
 		chp::segment sub = import_segment(dst, syntax.guard, syntax.kind, default_id, tokens, auto_define);
 		result = compose(dst, petri::SEQUENCE, result, sub);
 	}
+
 	if (syntax.action.valid) {
 		chp::segment sub = import_segment(dst, syntax.action, default_id, tokens, auto_define);
 		result = compose(dst, petri::SEQUENCE, result, sub);
 	}
 
-	if (syntax.kind == "while" and not result.nodes.source.empty()) {
+	if ((syntax.kind == "when" or syntax.kind == "while") and not result.nodes.source.empty()) {
 		result.loop = true;
 		petri::iterator link = dst.create(chp::place());
-		dst.connect({{link}}, result.nodes.source);
 		dst.connect(result.nodes.sink, {{link}});
-		result.nodes.sink.clear();
+		dst.connect({{link}}, result.nodes.source);
 		if (not result.nodes.reset.empty()) {
 			result.nodes.source = result.nodes.reset;
 			result.nodes.reset.clear();
 		} else {
 			result.nodes.source = petri::bound({{link}});
+		}
+		result.nodes.sink.clear();
+	} else if ((syntax.kind == "until" or syntax.kind == "unless") and not result.nodes.source.empty()) {
+		result.loop = true;
+		petri::iterator link = dst.create(chp::place());
+		dst.connect(result.nodes.sink, {{link}});
+		result.nodes.sink = petri::bound({{link}});
+	
+		/*petri::bound oldSource = result.nodes.source;
+		if (not result.nodes.reset.empty()) {
+			result.nodes.source = result.nodes.reset;
+			result.nodes.reset.clear();
+		}
+		result.nodes.source = dst.duplicateBound(petri::Composition::CHOICE, result.nodes.source);
+		dst.connect({{link}}, oldSource);*/
+	
+		// TODO(edward.bingham) discuss this with Steven. Do we duplicate the first
+		// transition or add a skip? Real hardware behaves as if the first transition
+		// were duplicated.
+		dst.connect({{link}}, result.nodes.source);
+		if (not result.nodes.reset.empty()) {
+			result.nodes.source = result.nodes.reset;
+			result.nodes.reset.clear();
+		} else {
+			result.nodes.source = petri::bound({{link}});
+		}
+		petri::iterator start = dst.create(chp::transition());
+		dst.connect(start, link);
+		result.nodes.source = petri::bound({{start}});
+
+		if (syntax.guard.valid) {
+			chp::segment sub = import_segment(dst, syntax.guard, syntax.kind, default_id, tokens, auto_define);
+			result = compose(dst, petri::SEQUENCE, result, sub);
+		} else {
+			result.nodes.sink.clear();
 		}
 	}
 

@@ -10,7 +10,7 @@ segment::segment(bool cond) {
 segment::~segment() {
 }
 
-segment compose(chp::graph &dst, petri::Composition composition, segment s0, segment s1) {
+segment compose(chp::graph &dst, petri::Composition composition, segment s0, segment s1, bool proper) {
 	if (composition == petri::CHOICE) {
 		s0.cond = s0.cond | s1.cond;
 	} else if (composition == petri::PARALLEL) {
@@ -21,7 +21,7 @@ segment compose(chp::graph &dst, petri::Composition composition, segment s0, seg
 			s0.loop = s1.loop;
 		}
 	}
-	s0.nodes = dst.compose(composition, s0.nodes, s1.nodes, true);
+	s0.nodes = dst.compose(composition, s0.nodes, s1.nodes, proper);
 	return s0;
 }
 

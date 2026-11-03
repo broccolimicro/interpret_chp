@@ -2,7 +2,106 @@
 
 #include <interpret_arithmetic/export.h>
 
-namespace chp {
+namespace parse_chp {
+
+/*arithmetic::Expression compute_guard(const petri::Tree<chp::transition> &tree, controlflow::Index i) {
+	if (i.type == controlflow::Index::TRANSITION) {
+		return tree.transitions[i.index].guard
+			& isValid(tree.transitions[i.index].action.rvalue);
+	}
+
+	if (tree.nodes[i.index].type == Node::SEQUENCE) {
+		if (tree.nodes[i.index].procs.empty()) {
+			return arithmetic::Expression::vdd();
+		}
+		return compute_guard(tree, tree.nodes[i.index].procs[0]);
+	} else if (tree.nodes[i.index].type == Node::PARALLEL) {
+		arithmetic::Expression guard = arithmetic::Expression::vdd();
+		for (auto proc : tree.nodes[i.index].procs) {
+			guard = guard & compute_guard(tree, proc);
+		}
+		return guard;
+	}
+
+	arithmetic::Expression guard = arithmetic::Expression::gnd();
+	for (auto proc : tree.nodes[i.index].procs) {
+		guard = guard | compute_guard(tree, proc);
+	}
+	return guard;
+}
+
+void export_control(parse_cog::composition &comp, std::string kind, const petri::Tree<chp::transition> &tree, controlflow::Index i, bool isGuarded) {
+	if (i.type == controlflow::Index::TRANSITION) {
+		const chp::transition &t = tree.transitions[i.index];
+		if (not t.guard.isValid() and not isGuarded) {
+			parse_cog::guard guard;
+			guard.valid = true;
+			guard.expr = export_expression(t.guard, ...);
+			comp.branches.push_back(std::shared_ptr<parse::syntax>(guard.clone()));
+		}
+		comp.branches.push_back(std::shared_ptr<parse::syntax>(export_composition(t.action, ...).clone()));
+		return;
+	}
+
+	parse_cog::control result;
+	result.valid = true;
+	result.kind = kind;
+	result.guard = export_expression(compute_guard(tree, i));
+	result.action = export_composition(tree, i, true);
+
+	comp.branches.push_back(std::shared_ptr<parse::syntax>(result.clone()));
+}
+
+parse_cog::composition export_composition(const petri::Tree<chp::transition> &tree, controlflow::Index i, bool isGuarded) {
+	parse_cog::composition result;
+	result.level = parse_cog::composition::SEQUENCE;
+	std::string comp = "\n";
+
+	if (i.index < 0) {
+		if (tree.root < 0) {
+			return result;
+		}
+		i.type = controlflow::Index::NODE;
+		i.index = tree.root;
+	}
+
+	result.valid = true;
+	if (i.type == controlflow::Index::TRANSITION) {
+		export_control(result, "await", tree, i, isGuarded);
+		return result;
+	}
+
+	if (tree.nodes[node].type == controlflow::Node::CHOICE) {
+		result.level = parse_cog::composition::CHOICE;
+		comp = "xor";
+	} else if (tree.nodes[node].type == controlflow::Node::PARALLEL) {
+		result.level = parse_cog::composition::PARALLEL;
+		comp = "and";
+	} else if (tree.nodes[node].type == controlflow::Node::LOOP) {
+		result.level = parse_cog::composition::CHOICE;
+		comp = "xor";
+	}
+
+	for (auto proc : tree.nodes[node].procs) {
+		if (not result.branches.empty()) {
+			result.comp.push_back(comp);
+		}
+
+		if (proc.type = controlflow::Node::TRANSITION
+			or tree.nodes[node].type == controlflow::Node::CHOICE) {
+			result.branches.push_back(std::shared_ptr<parse::syntax>(export_control("await", tree, proc, isGuarded).clone()));
+		} else if (tree.nodes[node].type == controlflow::Node::LOOP) {
+			result.branches.push_back(std::shared_ptr<parse::syntax>(export_control("while", tree, proc, isGuarded).clone()));
+		} else {
+			result.branches.push_back(std::shared_ptr<parse::syntax>(export_composition(tree, proc, isGuarded).clone()));
+		}
+
+		if (result.level == parse_cog::composition::SEQUENCE) {
+			isGuarded = false;
+		}
+	}
+	return result;
+}*/
 
 /*parse_chp::sequence export_sequence(vector<petri::iterator> &i, const chp::graph &g, boolean::variable_set &v)
 {

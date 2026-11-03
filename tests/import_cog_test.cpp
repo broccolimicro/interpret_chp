@@ -1,49 +1,13 @@
 #include <common/standard.h>
 #include <gtest/gtest.h>
 
-#include <chp/graph.h>
-#include <parse/parse.h>
-#include <parse/tokenizer.h>
-#include <parse/default/block_comment.h>
-#include <parse/default/line_comment.h>
-#include <parse_cog/composition.h>
-#include <parse_cog/control.h>
-#include <parse_cog/factory.h>
-#include <interpret_chp/import_cog.h>
 #include <interpret_chp/export_dot.h>
-
-#include <interpret_arithmetic/export.h>
 
 #include "helpers.h"
 #include "dot.h"
 
 using namespace std;
 using namespace test;
-
-// Helper function to parse a string into an HSE graph via COG
-chp::graph load_cog_string(string input) {
-	// Set up tokenizer
-	tokenizer tokens;
-	tokens.register_token<parse::block_comment>(false);
-	tokens.register_token<parse::line_comment>(false);
-	parse_cog::factory.register_syntax(tokens);
-	
-	tokens.insert("string_input", input, nullptr);
-	
-	chp::graph g;
-
-	// Parse input
-	tokens.increment(false);
-	tokens.expect<parse_cog::composition>();
-	if (tokens.decrement(__FILE__, __LINE__)) {
-		parse_cog::composition syntax(tokens);
-		chp::import_chp(g, syntax, &tokens, true);
-	}
-
-	g.post_process();
-
-	return g;
-}
 
 // Test basic sequence import 
 /*TEST(CogImport, BasicSequence) {
@@ -175,7 +139,7 @@ TEST(CogImport, ConditionalWaiting) {
 TEST(CogImport, WhileLoop) {
 	chp::graph g = load_cog_string(R"(
 		region 1 {
-			while {
+			until {
 				a+
 				b+
 				a-
@@ -252,7 +216,7 @@ TEST(CogImport, WCHB1bBuffer) {
 		region 1 {
 			L.f- and L.t-
 			await L.e
-			while {
+			until {
 				L.f+ xor L.t+
 				await ~L.e
 				L.f- and L.t-
@@ -261,7 +225,7 @@ TEST(CogImport, WCHB1bBuffer) {
 		} and {
 			L.e+ and R.f- and R.t-
 			await R.e & ~L.f & ~L.t
-			while {
+			until {
 				await R.e & L.f {
 					R.f+
 				} or await R.e & L.t {
@@ -275,7 +239,7 @@ TEST(CogImport, WCHB1bBuffer) {
 		} and region 1 {
 			R.e+
 			await ~R.f & ~R.t
-			while {
+			until {
 				await R.f | R.t
 				R.e-
 				await ~R.f & ~R.t
@@ -337,7 +301,7 @@ TEST(CogImport, WCHB1bBuffer) {
 
 TEST(CogImport, Copy) {
 	chp::graph g = load_cog_string(R"(
-while {
+until {
 	x = L.recv()
 	A.send(x) and B.send(x)
 }
@@ -368,7 +332,7 @@ while {
 
 TEST(CogImport, Add) {
 	chp::graph g = load_cog_string(R"(
-while {
+until {
 	S.send(A.recv() + B.recv())
 }
 )");
@@ -395,7 +359,7 @@ while {
 
 TEST(CogImport, Split) {
 	chp::graph g = load_cog_string(R"(
-while {
+until {
 	x = L.recv() and c = C.recv()
 	if c == 0 {
 		A.send(x)
@@ -442,7 +406,7 @@ while {
 
 TEST(CogImport, Merge) {
 	chp::graph g = load_cog_string(R"(
-while {
+until {
 	c = C.recv()
 	if c == 0 {
 		x = A.recv()
@@ -492,7 +456,7 @@ TEST(CogImport, Counter) {
 	chp::graph g = load_cog_string(R"(
 v = 0
 z = true
-while {
+until {
 	Lz.send(z)
 	l = Lc.recv()
 	if l == 0 && v == 0 {

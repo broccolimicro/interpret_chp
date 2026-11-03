@@ -33,4 +33,29 @@ vector<petri::iterator> findRule(const chp::graph &g, arithmetic::Expression gua
 	return result;
 }
 
+// Helper function to parse a string into an HSE graph via COG
+chp::graph load_cog_string(string input) {
+	// Set up tokenizer
+	tokenizer tokens;
+	tokens.register_token<parse::block_comment>(false);
+	tokens.register_token<parse::line_comment>(false);
+	parse_cog::factory.register_syntax(tokens);
+	
+	tokens.insert("string_input", input, nullptr);
+	
+	chp::graph g;
+
+	// Parse input
+	tokens.increment(false);
+	tokens.expect<parse_cog::composition>();
+	if (tokens.decrement(__FILE__, __LINE__)) {
+		parse_cog::composition syntax(tokens);
+		chp::import_chp(g, syntax, &tokens, true);
+	}
+
+	g.post_process();
+
+	return g;
+}
+
 }
