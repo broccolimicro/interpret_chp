@@ -34,7 +34,21 @@ TEST(CogExport, Copy) {
 }
 
 TEST(CogExport, Loops) {
-	std::string source = R"(until G {
+	std::string source = R"(until {
+	A.send(L.recv())
+} and {
+	until C {
+		await G {
+			B.send(G.recv())
+		} or await C {
+			C.recv()
+		}
+	}
+	until {
+		C.recv()
+	}
+}
+)";/*R"(until G {
 	A.send(L.recv())
 } and until L {
 	B.send(G.recv())
@@ -46,7 +60,7 @@ TEST(CogExport, Loops) {
 	await C {
 		C.recv()
 	}
-})";
+})";*/
 
 	chp::graph g = load_cog_string(source);
 

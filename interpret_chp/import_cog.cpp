@@ -51,7 +51,11 @@ void ExpressionImporter::push_properties(parse_expression::operation op, const v
 			std::string str = args[1].ptr->to_string("");
 			value = atoi(str.c_str());
 		} else {
-			error("", "operator ''' expects 2 arguments, found '" + ::to_string(args.size()) + "'", __FILE__, __LINE__);
+			if (tokens != nullptr) {
+				tokens->error("operator ''' expects 2 arguments, found '" + ::to_string(args.size()) + "'", __FILE__, __LINE__);
+			} else {
+				error("", "operator ''' expects 2 arguments, found '" + ::to_string(args.size()) + "'", __FILE__, __LINE__);
+			}
 		}
 		this->region.push_back(value);
 	}
@@ -162,7 +166,11 @@ arithmetic::Expression ExpressionImporter::import_modifier(parse_expression::ope
 	// function names.
 	} else if (op.is("", "(", ",", ")")) { // Call, Validity, Truthiness
 		if (args.empty()) {
-			error("", "function call expects function name", __FILE__, __LINE__);
+			if (tokens != nullptr) {
+				tokens->error("function call expects function name", __FILE__, __LINE__);
+			} else {
+				error("", "function call expects function name", __FILE__, __LINE__);
+			}
 			return arithmetic::Expression();
 		}
 
@@ -186,22 +194,42 @@ arithmetic::Expression ExpressionImporter::import_modifier(parse_expression::ope
 		if (args[0].isConstant()) {
 			arithmetic::Value type = arithmetic::evaluateConstExpr(args[0], args[0].top);
 			if (type.type != arithmetic::Value::LABEL) {
-				error("", "function call expects typename", __FILE__, __LINE__);
+				if (tokens != nullptr) {
+					tokens->error("function call expects typename", __FILE__, __LINE__);
+				} else {
+					error("", "function call expects typename", __FILE__, __LINE__);
+				}
 				return arithmetic::Expression();
 			}
 
 			if (type.sval == "valid") {
 				if      (args.size() == 1u) { return arithmetic::Expression::vdd(); }
 				else if (args.size() == 2u) { return arithmetic::isValid(args[1]); }
-				else { error("", "valid() function expects 1 argument, found " + ::to_string(args.size()-1), __FILE__, __LINE__); }
+				else {
+					if (tokens != nullptr) {
+						tokens->error("valid() function expects 1 argument, found " + ::to_string(args.size()-1), __FILE__, __LINE__);
+					} else {
+						error("", "valid() function expects 1 argument, found " + ::to_string(args.size()-1), __FILE__, __LINE__);
+					}
+				}
 			} else if (type.sval == "true") {
 				if      (args.size() == 1u) { return arithmetic::Expression::boolOf(true); }
 				else if (args.size() == 2u) { return arithmetic::isTrue(args[1]); }
-				else { error("", "true() function expects 1 argument, found " + ::to_string(args.size()-1), __FILE__, __LINE__); }
+				else {
+					if (tokens != nullptr) {
+						tokens->error("true() function expects 1 argument, found " + ::to_string(args.size()-1), __FILE__, __LINE__);
+					} else {
+						error("", "true() function expects 1 argument, found " + ::to_string(args.size()-1), __FILE__, __LINE__);
+					}
+				}
 			} else if (type.sval == "bool" or type.sval == "wire" or type.sval == "fixed" or type.sval == "chan") { // Cast
 				// TODO(edward.bingham) search through the defined types for the constructor
 				if (args.size() != 2u) {
-					error("", "type cast expects two arguments", __FILE__, __LINE__);
+					if (tokens != nullptr) {
+						tokens->error("type cast expects two arguments", __FILE__, __LINE__);
+					} else {
+						error("", "type cast expects two arguments", __FILE__, __LINE__);
+					}
 					return arithmetic::Expression();
 				}
 
@@ -214,7 +242,11 @@ arithmetic::Expression ExpressionImporter::import_modifier(parse_expression::ope
 	} else if (op.is("", "[", ":", "]")) {
 		return arithmetic::Expression(arithmetic::Operation::INDEX, args);
 	}
-	internal("", "unrecognized operation", __FILE__, __LINE__);
+	if (tokens != nullptr) {
+		tokens->internal("unrecognized operation", __FILE__, __LINE__);
+	} else {
+		internal("", "unrecognized operation", __FILE__, __LINE__);
+	}
 	return arithmetic::Expression();
 }
 
@@ -275,7 +307,11 @@ void CompositionImporter::push_properties(parse_expression::operation op, const 
 			std::string str = args[1].ptr->to_string("");
 			value = atoi(str.c_str());
 		} else {
-			error("", "operator ''' expects 2 arguments, found '" + ::to_string(args.size()) + "'", __FILE__, __LINE__);
+			if (tokens != nullptr) {
+				tokens->error("operator ''' expects 2 arguments, found '" + ::to_string(args.size()) + "'", __FILE__, __LINE__);
+			} else {
+				error("", "operator ''' expects 2 arguments, found '" + ::to_string(args.size()) + "'", __FILE__, __LINE__);
+			}
 		}
 		this->region.push_back(value);
 	}
@@ -340,6 +376,9 @@ chp::segment import_segment(chp::graph &dst, const assignment &syntax, int defau
 namespace chp {
 
 chp::segment import_segment(chp::graph &dst, const parse_cog::composition &syntax, int default_id, tokenizer *tokens, bool auto_define) {
+	if (tokens != nullptr) {
+		tokens->load(&syntax);
+	}
 	bool arbiter = false;
 	bool synchronizer = false;
 
@@ -358,7 +397,7 @@ chp::segment import_segment(chp::graph &dst, const parse_cog::composition &synta
 	chp::segment result(composition != petri::CHOICE);
 	for (int i = 0; i < (int)syntax.branches.size(); i++) {
 		chp::segment branch = import_segment(dst, syntax.branches[i].get(), default_id, tokens, auto_define);
-		result = compose(dst, composition, result, branch, true);
+		result = compose(dst, composition, result, branch, tokens, true);
 	}
 
 	if (syntax.branches.size() == 0) {
@@ -453,6 +492,9 @@ chp::segment import_segment(chp::graph &dst, const parse_cog::composition &synta
 }
 
 chp::segment import_segment(chp::graph &dst, const parse_cog::control &syntax, int default_id, tokenizer *tokens, bool auto_define) {
+	if (tokens != nullptr) {
+		tokens->load(&syntax);
+	}
 	if (syntax.region != "") {
 		default_id = atoi(syntax.region.c_str());
 	}
@@ -460,12 +502,12 @@ chp::segment import_segment(chp::graph &dst, const parse_cog::control &syntax, i
 	chp::segment result(true);
 	if (syntax.guard.valid and (syntax.kind == "await" or syntax.kind == "if" or syntax.kind == "when" or syntax.kind == "while")) {
 		chp::segment sub = import_segment(dst, syntax.guard, syntax.kind, default_id, tokens, auto_define);
-		result = compose(dst, petri::SEQUENCE, result, sub);
+		result = compose(dst, petri::SEQUENCE, result, sub, tokens);
 	}
 
 	if (syntax.action.valid) {
 		chp::segment sub = import_segment(dst, syntax.action, default_id, tokens, auto_define);
-		result = compose(dst, petri::SEQUENCE, result, sub);
+		result = compose(dst, petri::SEQUENCE, result, sub, tokens);
 	}
 
 	if ((syntax.kind == "when" or syntax.kind == "while") and not result.nodes.source.empty()) {
@@ -510,7 +552,7 @@ chp::segment import_segment(chp::graph &dst, const parse_cog::control &syntax, i
 
 		if (syntax.guard.valid) {
 			chp::segment sub = import_segment(dst, syntax.guard, syntax.kind, default_id, tokens, auto_define);
-			result = compose(dst, petri::SEQUENCE, result, sub);
+			result = compose(dst, petri::SEQUENCE, result, sub, tokens);
 		} else {
 			result.nodes.sink.clear();
 		}
@@ -522,7 +564,9 @@ chp::segment import_segment(chp::graph &dst, const parse_cog::control &syntax, i
 chp::segment import_segment(chp::graph &dst, const parse_cog::declaration &syntax, int default_id, tokenizer *tokens, bool auto_define) {
 	// TODO(edward.bingham) handle the variable creation
 	//dst.create(chp::variable());
-
+	if (tokens != nullptr) {
+		tokens->load(&syntax);
+	}
 	return import_segment(dst, syntax.expr, default_id, tokens, auto_define);
 }
 
@@ -542,6 +586,9 @@ chp::segment import_segment(chp::graph &dst, const parse::syntax *syntax, int de
 }
 
 void import_chp(chp::graph &dst, const parse_cog::composition &syntax, tokenizer *tokens, bool auto_define) {
+	if (tokens != nullptr) {
+		tokens->load(&syntax);
+	}
 	petri::segment result = import_segment(dst, syntax, 0, tokens, auto_define).nodes;
 	if (not result.reset.empty()) {
 		result.source = result.reset;
