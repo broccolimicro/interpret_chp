@@ -139,7 +139,7 @@ parse_expression::expression export_composition(const arithmetic::Choice &expr, 
 }
 
 
-arithmetic::Expression compute_guard(const controlflow::Tree<chp::transition> &tree, controlflow::Index i) {
+arithmetic::Expression compute_guard(const controlflow::Tree<chp::transition, chp::place> &tree, controlflow::Index i) {
 	if (i.type == controlflow::Index::TRANSITION) {
 		return tree.transitions[i.index].guard;
 			//& isValid(tree.transitions[i.index].action.guard());
@@ -165,70 +165,105 @@ arithmetic::Expression compute_guard(const controlflow::Tree<chp::transition> &t
 	return guard;
 }
 
-bool export_control(parse_cog::composition &comp, const controlflow::Tree<chp::transition> &tree, controlflow::Index i, controlflow::Index j, bool isGuarded, ucs::ConstNetlist nets) {
+arithmetic::Expression popValid(arithmetic::Expression expr) {
+	if (expr.top.isExpr()) {
+		const arithmetic::Operation *op = expr.getExpr(expr.top.index);
+		if (op->func == arithmetic::Operation::VALIDITY and not op->operands.empty()) {
+			expr.top = expr.getExpr(expr.top.index)->operands.back();
+		}
+	}
+	return expr;
+}
+
+bool export_control(parse_cog::composition &comp, const controlflow::Tree<chp::transition, chp::place> &tree, controlflow::Index i, controlflow::Index j, bool isEmbedded, bool isGuarded, ucs::ConstNetlist nets) {
 	if (i.type == controlflow::Index::TRANSITION) {
 		const chp::transition &t = tree.transitions[i.index];
 		if (not t.guard.isUndef() and not t.guard.isValid() and not isGuarded) {
 			parse_cog::control result;
 			result.valid = true;
 			result.kind = "await";
-			result.guard = export_expression(t.guard, nets);
+			result.guard = export_expression(popValid(t.guard), nets);
+			if (isEmbedded and not t.action.isInfeasible() and not t.action.isVacuous()) {
+				result.action.valid = true;
+				result.action.level = parse_cog::composition::SEQUENCE;
+				result.action.branches.push_back(std::shared_ptr<parse::syntax>(export_composition(t.action, nets).clone()));
+			}
 			comp.branches.push_back(std::shared_ptr<parse::syntax>(result.clone()));
 		}
-		if (not t.action.isInfeasible() and not t.action.isVacuous()) {
+		if ((t.guard.isUndef() or t.guard.isValid()
+			or isGuarded or not isEmbedded)
+			and not t.action.isInfeasible()
+			and not t.action.isVacuous()) {
 			comp.branches.push_back(std::shared_ptr<parse::syntax>(export_composition(t.action, nets).clone()));
 		}
 		return false;
 	}
 
-	parse_cog::control result;
-	result.valid = true;
+	
 	if (tree.nodes[i.index].type == controlflow::Node::LOOP) {
+		parse_cog::control result;
+		result.valid = true;
 		result.action = export_composition(tree, i, false, nets);
-		result.kind = "until";
+		result.kind = "xuntil";
+		if (tree.nodes[i.index].place >= 0) {
+			result.kind = tree.places[tree.nodes[i.index].place].arbiter ? "xuntil" : "until";
+		}
 		arithmetic::Expression guard = j.index >= 0 ? compute_guard(tree, j) : arithmetic::Expression::gnd();
 		if (not guard.isNeutral()) {
-			result.guard = export_expression(guard, nets);
+			result.guard = export_expression(popValid(guard), nets);
 			comp.branches.push_back(std::shared_ptr<parse::syntax>(result.clone()));
 			return true;
-		} else {
-			comp.branches.push_back(std::shared_ptr<parse::syntax>(result.clone()));
-			return false;
 		}
-	} else {
-		result.action = export_composition(tree, i, true, nets);
+
+		comp.branches.push_back(std::shared_ptr<parse::syntax>(result.clone()));
+		return false;
+	}
+
+	arithmetic::Expression guard = isEmbedded and not isGuarded
+		? compute_guard(tree, i).minimize()
+		: arithmetic::Expression::vdd();
+	if (not guard.isValid()) {
+		parse_cog::control result;
+		result.valid = true;
 		result.kind = "await";
-		arithmetic::Expression guard = compute_guard(tree, i).minimize();
-		if (not guard.isValid() and not isGuarded) {
-			result.guard = export_expression(guard, nets);
-			comp.branches.push_back(std::shared_ptr<parse::syntax>(result.clone()));
-		} else if (comp.level == result.action.level or result.action.branches.size() == 1u) {
-			comp.branches.insert(comp.branches.end(), result.action.branches.begin(), result.action.branches.end());
-			comp.comp.insert(comp.comp.end(), result.action.comp.begin(), result.action.comp.end());
-		} else {
-			comp.branches.push_back(std::shared_ptr<parse::syntax>(result.action.clone()));
-		}
+		result.guard = export_expression(popValid(guard), nets);
+		result.action = export_composition(tree, i, true, nets);
+		comp.branches.push_back(std::shared_ptr<parse::syntax>(result.clone()));
+		return false;
+	}
+
+	parse_cog::composition result = export_composition(tree, i, false, nets);
+	if (comp.level == result.level or result.branches.size() == 1u) {
+		comp.branches.insert(comp.branches.end(), result.branches.begin(), result.branches.end());
+		comp.comp.insert(comp.comp.end(), result.comp.begin(), result.comp.end());
+	} else {
+		comp.branches.push_back(std::shared_ptr<parse::syntax>(result.clone()));
 	}
 	return false;
 }
 
-parse_cog::composition export_composition(const controlflow::Tree<chp::transition> &tree, controlflow::Index i, bool isGuarded, ucs::ConstNetlist nets) {
+parse_cog::composition export_composition(const controlflow::Tree<chp::transition, chp::place> &tree, controlflow::Index i, bool isGuarded, ucs::ConstNetlist nets) {
+	bool isEmbedded = false;
 	parse_cog::composition result;
 	result.level = parse_cog::composition::SEQUENCE;
 	std::string comp = "\n";
 
 	result.valid = true;
-	if (i.type == controlflow::Index::TRANSITION) {
-		export_control(result, tree, i, controlflow::Index(), isGuarded, nets);
-		return result;
-	}
-
 	if (tree.nodes[i.index].type == controlflow::Node::CHOICE) {
 		result.level = parse_cog::composition::CHOICE;
 		comp = "xor";
+		if (tree.nodes[i.index].place >= 0) {
+			comp = tree.places[tree.nodes[i.index].place].arbiter ? "xor" : "or";
+		}
+		isEmbedded = true;
 	} else if (tree.nodes[i.index].type == controlflow::Node::PARALLEL) {
 		result.level = parse_cog::composition::PARALLEL;
 		comp = "and";
+	}
+
+	if (i.type == controlflow::Index::TRANSITION) {
+		export_control(result, tree, i, controlflow::Index(), isEmbedded, isGuarded, nets);
+		return result;
 	}
 
 	for (size_t j = 0; j < tree.nodes[i.index].procs.size(); j++) {
@@ -244,7 +279,7 @@ parse_cog::composition export_composition(const controlflow::Tree<chp::transitio
 			next = tree.nodes[i.index].procs[j+1];
 		}
 		
-		if (export_control(result, tree, curr, next, isGuarded, nets)) {
+		if (export_control(result, tree, curr, next, isEmbedded, isGuarded, nets)) {
 			j++;
 		}
 
@@ -255,7 +290,7 @@ parse_cog::composition export_composition(const controlflow::Tree<chp::transitio
 	return result;
 }
 
-parse_cog::composition export_cog(const controlflow::Tree<chp::transition> &tree, ucs::ConstNetlist nets, controlflow::Index i) {
+parse_cog::composition export_cog(const controlflow::Tree<chp::transition, chp::place> &tree, ucs::ConstNetlist nets, controlflow::Index i) {
 	parse_cog::composition result;
 	result.level = parse_cog::composition::SEQUENCE;
 	result.valid = true;
@@ -268,7 +303,7 @@ parse_cog::composition export_cog(const controlflow::Tree<chp::transition> &tree
 		i.index = tree.root;
 	}
 
-	export_control(result, tree, i, controlflow::Index(), false, nets);
+	export_control(result, tree, i, controlflow::Index(), false, false, nets);
 	return result;
 }
 

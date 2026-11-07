@@ -53,10 +53,10 @@ parse_expression::expression export_composition(const arithmetic::Choice &expr, 
 
 // CHP
 
-arithmetic::Expression compute_guard(const controlflow::Tree<chp::transition> &tree, controlflow::Index i);
-bool export_control(parse_cog::composition &comp, const controlflow::Tree<chp::transition> &tree, controlflow::Index i, controlflow::Index j, bool isGuarded, ucs::ConstNetlist nets);
-parse_cog::composition export_composition(const controlflow::Tree<chp::transition> &tree, controlflow::Index i, bool isGuarded, ucs::ConstNetlist nets);
-parse_cog::composition export_cog(const controlflow::Tree<chp::transition> &tree, ucs::ConstNetlist nets, controlflow::Index i = controlflow::Index());
+arithmetic::Expression compute_guard(const controlflow::Tree<chp::transition, chp::place> &tree, controlflow::Index i);
+bool export_control(parse_cog::composition &comp, const controlflow::Tree<chp::transition, chp::place> &tree, controlflow::Index i, controlflow::Index j, bool isEmbedded, bool isGuarded, ucs::ConstNetlist nets);
+parse_cog::composition export_composition(const controlflow::Tree<chp::transition, chp::place> &tree, controlflow::Index i, bool isGuarded, ucs::ConstNetlist nets);
+parse_cog::composition export_cog(const controlflow::Tree<chp::transition, chp::place> &tree, ucs::ConstNetlist nets, controlflow::Index i = controlflow::Index());
 
 /*parse_chp::sequence export_sequence(vector<chp::iterator> &i, const chp::graph &g);
 parse_chp::parallel export_parallel(vector<chp::iterator> &i, const chp::graph &g);

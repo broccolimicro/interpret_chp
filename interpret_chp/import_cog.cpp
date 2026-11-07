@@ -351,9 +351,9 @@ arithmetic::Choice import_composition(const parse_expression::expression &syntax
 chp::segment import_segment(chp::graph &dst, const parse_expression::expression &syntax, string func, int default_id, tokenizer *tokens, bool auto_define) {
 	chp::segment result(false);
 	result.cond = import_expression(syntax, dst, tokens, default_id, auto_define);
-	if (func == "await" or func == "until" or func == "when") {
+	if (func == "await" or func == "until" or func == "when" or func == "xuntil") {
 		result.cond = arithmetic::isValid(result.cond);
-	} else if (func == "if" or func == "unless" or func == "while") {
+	} else if (func == "if" or func == "unless" or func == "while" or func == "xunless") {
 		result.cond = arithmetic::isTrue(result.cond);
 	}
 	petri::iterator t = dst.create(chp::transition(result.cond));
@@ -422,6 +422,7 @@ chp::segment import_segment(chp::graph &dst, const parse_cog::composition &synta
 			if (r.nodes.size() == 1u and r.nodes[0].type == petri::place::type) {
 				dst.connect(from, dst.next(r.nodes[0]));
 				dst.connect(dst.prev(r.nodes[0]), from);
+				dst.places[from.index].merge(petri::CHOICE, dst.places[r.nodes[0].index]);
 				dst.erase(r.nodes[0]);
 			} else {
 				dst.connect(from, r);
@@ -522,9 +523,13 @@ chp::segment import_segment(chp::graph &dst, const parse_cog::control &syntax, i
 			result.nodes.source = petri::bound({{link}});
 		}
 		result.nodes.sink.clear();
-	} else if ((syntax.kind == "until" or syntax.kind == "unless") and not result.nodes.source.empty()) {
+	} else if ((syntax.kind == "until" or syntax.kind == "unless"
+		or syntax.kind == "xuntil" or syntax.kind == "xunless") and not result.nodes.source.empty()) {
 		result.loop = true;
 		petri::iterator link = dst.create(chp::place());
+		if (syntax.kind == "xuntil" or syntax.kind == "xunless") {
+			dst.places[link.index].arbiter = true;
+		}
 		dst.connect(result.nodes.sink, {{link}});
 		result.nodes.sink = petri::bound({{link}});
 	
