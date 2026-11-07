@@ -17,23 +17,37 @@ void expectEq(std::string expected, std::string actual) {
 	EXPECT_TRUE(isMatch(diff)) << diff;
 }
 
+void testCogExport(std::string source, std::string target, bool debug=false) {
+	const ::testing::TestInfo* const testInfo =
+			::testing::UnitTest::GetInstance()->current_test_info();
+	std::string testSuiteName = testInfo->test_suite_name();
+	std::string testName = testInfo->name();
+
+	chp::graph g = load_cog_string(source);
+
+	if (debug) {
+		gvdot::render(testSuiteName + "_" + testName + ".png", chp::export_graph(g, true).to_string());
+	}
+
+	petri::graph<chp::place, controlflow::Tree<chp::transition, chp::place>, chp::state> result;
+	EXPECT_TRUE(petri::graph_to_tree(result, g)) << "resulting graph not properly nested";
+	for (size_t i = 0; i < result.transitions.size(); i++) {
+		if (not result.transitions.is_valid(i)) continue;
+
+		expectEq(target, parse_cog::export_cog(result.transitions[i], g).to_string(""));
+	}
+}
+
 TEST(CogExport, Copy) {
 	std::string source = R"(until {
 	x=L.recv()
 	A.send(x) and B.send(x)
 })";
 
-	chp::graph g = load_cog_string(source);
-	petri::graph<chp::place, controlflow::Tree<chp::transition, chp::place>, chp::state> result;
-	EXPECT_TRUE(petri::graph_to_tree(result, g));
-	for (size_t i = 0; i < result.transitions.size(); i++) {
-		if (not result.transitions.is_valid(i)) continue;
-
-		expectEq(source, parse_cog::export_cog(result.transitions[i], g).to_string(""));
-	}
+	testCogExport(source, source);
 }
 
-TEST(CogExport, Loops) {
+TEST(CogExport, Loops1) {
 	std::string source = R"(until G {
 	A.send(L.recv())
 } and until L {
@@ -61,17 +75,7 @@ std::string target = R"(until G {
 	C.recv()
 })";
 
-	chp::graph g = load_cog_string(source);
-
-	gvdot::render("loops.png", chp::export_graph(g, true).to_string());
-
-	petri::graph<chp::place, controlflow::Tree<chp::transition, chp::place>, chp::state> result;
-	EXPECT_TRUE(petri::graph_to_tree(result, g));
-	for (size_t i = 0; i < result.transitions.size(); i++) {
-		if (not result.transitions.is_valid(i)) continue;
-
-		expectEq(target, parse_cog::export_cog(result.transitions[i], g).to_string(""));
-	}
+	testCogExport(source, target);
 }
 
 TEST(CogExport, Loops2) {
@@ -105,17 +109,7 @@ TEST(CogExport, Loops2) {
 	}
 })";
 
-	chp::graph g = load_cog_string(source);
-
-	gvdot::render("loops2.png", chp::export_graph(g, true).to_string());
-
-	petri::graph<chp::place, controlflow::Tree<chp::transition, chp::place>, chp::state> result;
-	EXPECT_TRUE(petri::graph_to_tree(result, g));
-	for (size_t i = 0; i < result.transitions.size(); i++) {
-		if (not result.transitions.is_valid(i)) continue;
-
-		expectEq(target, parse_cog::export_cog(result.transitions[i], g).to_string(""));
-	}
+	testCogExport(source, target);
 }
 
 TEST(CogExport, Loops3) {
@@ -134,17 +128,7 @@ TEST(CogExport, Loops3) {
 	}
 })";
 
-	chp::graph g = load_cog_string(source);
-
-	gvdot::render("loops3.png", chp::export_graph(g, true).to_string());
-
-	petri::graph<chp::place, controlflow::Tree<chp::transition, chp::place>, chp::state> result;
-	EXPECT_TRUE(petri::graph_to_tree(result, g));
-	for (size_t i = 0; i < result.transitions.size(); i++) {
-		if (not result.transitions.is_valid(i)) continue;
-
-		expectEq(source, parse_cog::export_cog(result.transitions[i], g).to_string(""));
-	}
+	testCogExport(source, source);
 }
 
 /*TEST(CogExport, Add) {
