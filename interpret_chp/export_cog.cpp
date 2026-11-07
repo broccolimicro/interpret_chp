@@ -175,6 +175,26 @@ arithmetic::Expression popValid(arithmetic::Expression expr) {
 	return expr;
 }
 
+bool hasTrue(arithmetic::Expression expr) {
+	if (expr.top.isExpr()) {
+		const arithmetic::Operation *op = expr.getExpr(expr.top.index);
+		if (op->func == arithmetic::Operation::TRUTHINESS and not op->operands.empty()) {
+			return true;
+		}
+	}
+	return false;
+}
+
+arithmetic::Expression popTrue(arithmetic::Expression expr) {
+	if (expr.top.isExpr()) {
+		const arithmetic::Operation *op = expr.getExpr(expr.top.index);
+		if (op->func == arithmetic::Operation::TRUTHINESS and not op->operands.empty()) {
+			expr.top = expr.getExpr(expr.top.index)->operands.back();
+		}
+	}
+	return expr;
+}
+
 bool export_control(parse_cog::composition &comp, const controlflow::Tree<chp::transition, chp::place> &tree, controlflow::Index i, controlflow::Index j, bool isEmbedded, bool isGuarded, ucs::ConstNetlist nets) {
 	if (i.type == controlflow::Index::TRANSITION) {
 		const chp::transition &t = tree.transitions[i.index];
@@ -182,7 +202,12 @@ bool export_control(parse_cog::composition &comp, const controlflow::Tree<chp::t
 			parse_cog::control result;
 			result.valid = true;
 			result.kind = "await";
-			result.guard = export_expression(popValid(t.guard), nets);
+			arithmetic::Expression guard = popValid(t.guard);
+			if (hasTrue(guard)) {
+				result.kind = "if";
+				guard = popTrue(guard);
+			}
+			result.guard = export_expression(guard, nets);
 			if (isEmbedded and not t.action.isInfeasible() and not t.action.isVacuous()) {
 				result.action.valid = true;
 				result.action.level = parse_cog::composition::SEQUENCE;
@@ -210,7 +235,12 @@ bool export_control(parse_cog::composition &comp, const controlflow::Tree<chp::t
 		}
 		arithmetic::Expression guard = j.index >= 0 ? compute_guard(tree, j) : arithmetic::Expression::gnd();
 		if (not guard.isNeutral()) {
-			result.guard = export_expression(popValid(guard), nets);
+			guard = popValid(guard);
+			if (hasTrue(guard)) {
+				result.kind = result.kind == "xuntil" ? "xunless" : "unless";
+				guard = popTrue(guard);
+			}
+			result.guard = export_expression(guard, nets);
 			comp.branches.push_back(std::shared_ptr<parse::syntax>(result.clone()));
 			return true;
 		}
@@ -226,7 +256,12 @@ bool export_control(parse_cog::composition &comp, const controlflow::Tree<chp::t
 		parse_cog::control result;
 		result.valid = true;
 		result.kind = "await";
-		result.guard = export_expression(popValid(guard), nets);
+		guard = popValid(guard);
+		if (hasTrue(guard)) {
+			result.kind = "if";
+			guard = popTrue(guard);
+		}
+		result.guard = export_expression(guard, nets);
 		result.action = export_composition(tree, i, true, nets);
 		comp.branches.push_back(std::shared_ptr<parse::syntax>(result.clone()));
 		return false;

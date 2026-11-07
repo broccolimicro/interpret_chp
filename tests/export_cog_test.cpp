@@ -134,6 +134,30 @@ TEST(CogExport, Loops3) {
 	testCogExport(source, source);
 }
 
+TEST(CogExport, Merge) {
+	std::string source = R"""(while {
+	c = C.recv()
+	if c == 0 {
+		x = A.recv()
+	} or if c == 1 {
+		x = B.recv()
+	}
+	R.send(x)
+})""";
+
+	std::string target = R"""(until {
+	c=C.recv()
+	if c==0 {
+		x=A.recv()
+	} or if c==1 {
+		x=B.recv()
+	}
+	R.send(x)
+})""";
+
+	testCogExport(source, target);
+}
+
 /*TEST(CogExport, Add) {
 	chp::graph g = load_cog_string(R"(
 while {
