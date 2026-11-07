@@ -1,12 +1,16 @@
 #pragma once
 
 #include <common/standard.h>
+#include <common/net.h>
 
+#include <parse_cog/expression.h>
+#include <parse_cog/control.h>
 #include <parse_cog/composition.h>
 
 #include <chp/graph.h>
 #include <chp/state.h>
 #include <petri/tree.h>
+#include <flow/func.h>
 
 #include <parse_cog/expression.h>
 
@@ -57,6 +61,21 @@ arithmetic::Expression compute_guard(const controlflow::Tree<chp::transition, ch
 bool export_control(parse_cog::composition &comp, const controlflow::Tree<chp::transition, chp::place> &tree, controlflow::Index i, controlflow::Index j, bool isEmbedded, bool isGuarded, ucs::ConstNetlist nets);
 parse_cog::composition export_composition(const controlflow::Tree<chp::transition, chp::place> &tree, controlflow::Index i, bool isGuarded, ucs::ConstNetlist nets);
 parse_cog::composition export_cog(const controlflow::Tree<chp::transition, chp::place> &tree, ucs::ConstNetlist nets, controlflow::Index i = controlflow::Index());
+
+// Flow
+
+parse_cog::assignment export_in(int uid, ucs::ConstNetlist nets);
+parse_cog::composition export_ins(const std::vector<int> &ins, ucs::ConstNetlist nets);
+parse_cog::assignment export_reg(int uid, arithmetic::Expression expr, ucs::ConstNetlist nets);
+parse_cog::composition export_regs(const std::vector<std::pair<int, arithmetic::Expression> > &regs, ucs::ConstNetlist nets);
+parse_cog::assignment export_out(int uid, arithmetic::Expression expr, ucs::ConstNetlist nets);
+parse_cog::composition export_outs(const std::vector<std::pair<int, arithmetic::Expression> > &outs, ucs::ConstNetlist nets);
+parse_cog::composition export_branch(const flow::Condition &cond, ucs::ConstNetlist nets);
+parse_cog::control export_condition(const flow::Condition &cond, ucs::ConstNetlist nets);
+parse_cog::composition export_conditions(const std::vector<flow::Condition> &conds, ucs::ConstNetlist nets);
+parse_cog::control export_main(const flow::Func &func);
+parse_cog::assignment export_instance(const flow::Instance &inst, ucs::ConstNetlist nets);
+parse_cog::composition export_func(const flow::Func &func);
 
 /*parse_chp::sequence export_sequence(vector<chp::iterator> &i, const chp::graph &g);
 parse_chp::parallel export_parallel(vector<chp::iterator> &i, const chp::graph &g);

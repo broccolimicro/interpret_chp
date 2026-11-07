@@ -1,6 +1,6 @@
 NAME          = interpret_chp
-DEPEND        = parse_dot parse_astg parse_chp parse_cog chp interpret_arithmetic petri parse_expression parse_ucs arithmetic parse common
-TEST_DEPEND   = parse_dot parse_astg parse_chp parse_cog chp interpret_arithmetic petri parse_expression parse_ucs arithmetic parse common
+DEPEND        = parse_dot parse_astg parse_chp parse_cog flow chp interpret_arithmetic petri parse_expression parse_ucs arithmetic parse common
+TEST_DEPEND   = parse_dot parse_astg parse_chp parse_cog flow chp interpret_arithmetic petri parse_expression parse_ucs arithmetic parse common
 
 COVERAGE ?= 0
 

@@ -307,6 +307,150 @@ parse_cog::composition export_cog(const controlflow::Tree<chp::transition, chp::
 	return result;
 }
 
+// Flow
+
+parse_cog::assignment export_in(int uid, ucs::ConstNetlist nets) {
+	return export_assignment(
+		arithmetic::Action(
+			arithmetic::memberCall(
+				arithmetic::Expression::varOf(uid), "recv", {})),
+		nets);
+}
+
+parse_cog::composition export_ins(const std::vector<int> &ins, ucs::ConstNetlist nets) {
+	parse_cog::composition result;
+	result.valid = true;
+	result.level = parse_cog::composition::PARALLEL;
+	for (int in : ins) {
+		if (not result.branches.empty()) {
+			result.comp.push_back("and");
+		}
+		result.branches.push_back(std::shared_ptr<parse::syntax>(export_in(in, nets).clone()));
+	}
+	return result;
+}
+
+parse_cog::assignment export_reg(int uid, arithmetic::Expression expr, ucs::ConstNetlist nets) {
+	return export_assignment(
+		arithmetic::Action(
+			arithmetic::Expression::varOf(uid), expr),
+		nets);
+}
+
+parse_cog::composition export_regs(const std::vector<std::pair<int, arithmetic::Expression> > &regs, ucs::ConstNetlist nets) {
+	parse_cog::composition result;
+	result.valid = true;
+	result.level = parse_cog::composition::PARALLEL;
+	for (const auto &reg : regs) {
+		if (not result.branches.empty()) {
+			result.comp.push_back("and");
+		}
+		result.branches.push_back(std::shared_ptr<parse::syntax>(export_reg(reg.first, reg.second, nets).clone()));
+	}
+	return result;
+}
+
+parse_cog::assignment export_out(int uid, arithmetic::Expression expr, ucs::ConstNetlist nets) {
+	arithmetic::Action action(
+		arithmetic::memberCall(
+			arithmetic::Expression::varOf(uid),
+			"send", {expr}));
+	return export_assignment(action, nets);
+}
+
+parse_cog::composition export_outs(const std::vector<std::pair<int, arithmetic::Expression> > &outs, ucs::ConstNetlist nets) {
+	parse_cog::composition result;
+	result.valid = true;
+	result.level = parse_cog::composition::PARALLEL;
+	for (const auto &out : outs) {
+		if (not result.branches.empty()) {
+			result.comp.push_back("and");
+		}
+		result.branches.push_back(std::shared_ptr<parse::syntax>(export_out(out.first, out.second, nets).clone()));
+	}
+	return result;
+}
+
+parse_cog::composition export_branch(const flow::Condition &cond, ucs::ConstNetlist nets) {
+	parse_cog::composition result;
+	result.valid = true;
+	result.level = parse_cog::composition::SEQUENCE;
+
+	if (not cond.outs.empty()) {
+		result.branches.push_back(std::shared_ptr<parse::syntax>(export_outs(cond.outs, nets).clone()));
+	}
+	if (not cond.regs.empty()) {
+		if (not result.branches.empty()) {
+			result.comp.push_back("\n");
+		}
+		result.branches.push_back(std::shared_ptr<parse::syntax>(export_regs(cond.regs, nets).clone()));
+	}
+	if (not cond.ins.empty()) {
+		if (not result.branches.empty()) {
+			result.comp.push_back("\n");
+		}
+		result.branches.push_back(std::shared_ptr<parse::syntax>(export_ins(cond.ins, nets).clone()));
+	}
+	return result;
+
+}
+
+parse_cog::control export_condition(const flow::Condition &cond, ucs::ConstNetlist nets) {
+	parse_cog::control result;
+	result.valid = true;
+	result.kind = "await";
+	result.guard = export_expression(cond.valid, nets);
+	result.action = export_branch(cond, nets);
+	return result;
+}
+
+parse_cog::composition export_conditions(const std::vector<flow::Condition> &conds, ucs::ConstNetlist nets) {
+	if (conds.size() == 1u and conds[0].valid.isValid()) {
+		return export_branch(conds[0], nets);
+	}
+
+	parse_cog::composition result;
+	result.valid = true;
+	result.level = parse_cog::composition::CHOICE;
+	for (const auto &cond : conds) {
+		if (not result.branches.empty()) {
+			result.comp.push_back("or");
+		}
+		result.branches.push_back(std::shared_ptr<parse::syntax>(export_condition(cond, nets).clone()));
+	}
+	return result;
+}
+
+parse_cog::control export_main(const flow::Func &func) {
+	parse_cog::control result;
+	result.valid = true;
+	result.kind = "while";
+	result.guard = export_expression(arithmetic::Expression::boolOf(true), func);
+	result.action = export_conditions(func.conds, func);
+	return result;
+}
+
+parse_cog::assignment export_instance(const flow::Instance &inst, ucs::ConstNetlist nets) {
+	return export_assignment(
+		arithmetic::Action(
+			arithmetic::Expression::undef(),
+			arithmetic::call(inst.type, inst.ports)
+		), nets);
+}
+
+parse_cog::composition export_func(const flow::Func &func) {
+	parse_cog::composition result;
+	result.valid = true;
+	result.level = parse_cog::composition::PARALLEL;
+	result.branches.push_back(std::shared_ptr<parse::syntax>(export_main(func).clone()));
+	for (const auto &inst : func.inst) {
+		result.comp.push_back("and");
+		result.branches.push_back(std::shared_ptr<parse::syntax>(export_instance(inst, func).clone()));
+	}
+	return result;
+}
+
+
 /*parse_chp::sequence export_sequence(vector<petri::iterator> &i, const chp::graph &g, boolean::variable_set &v)
 {
 	parse_chp::sequence result;
