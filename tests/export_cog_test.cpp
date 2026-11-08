@@ -34,6 +34,9 @@ void testCogExport(std::string source, std::string target, bool debug=false) {
 
 	petri::graph<chp::place, controlflow::Tree<chp::transition, chp::place>, chp::state> result;
 	EXPECT_TRUE(petri::graph_to_tree(result, g)) << "resulting graph not properly nested";
+	if (debug) {
+		result.print();
+	}
 	for (size_t i = 0; i < result.transitions.size(); i++) {
 		if (not result.transitions.is_valid(i)) continue;
 

@@ -59,7 +59,7 @@ parse_expression::expression export_composition(const arithmetic::Choice &expr, 
 
 arithmetic::Expression compute_guard(const controlflow::Tree<chp::transition, chp::place> &tree, controlflow::Index i);
 bool export_control(parse_cog::composition &comp, const controlflow::Tree<chp::transition, chp::place> &tree, controlflow::Index i, controlflow::Index j, bool isEmbedded, bool isGuarded, ucs::ConstNetlist nets);
-parse_cog::composition export_composition(const controlflow::Tree<chp::transition, chp::place> &tree, controlflow::Index i, bool isGuarded, ucs::ConstNetlist nets);
+pair<parse_cog::composition, bool> export_composition(const controlflow::Tree<chp::transition, chp::place> &tree, controlflow::Index i, bool isGuarded, ucs::ConstNetlist nets);
 parse_cog::composition export_cog(const controlflow::Tree<chp::transition, chp::place> &tree, ucs::ConstNetlist nets, controlflow::Index i = controlflow::Index());
 
 // Flow

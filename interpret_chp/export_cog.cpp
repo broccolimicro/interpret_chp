@@ -228,7 +228,7 @@ bool export_control(parse_cog::composition &comp, const controlflow::Tree<chp::t
 	if (tree.nodes[i.index].type == controlflow::Node::LOOP) {
 		parse_cog::control result;
 		result.valid = true;
-		result.action = export_composition(tree, i, false, nets);
+		result.action = export_composition(tree, i, false, nets).first;
 		result.kind = "xuntil";
 		if (tree.nodes[i.index].place >= 0) {
 			result.kind = tree.places[tree.nodes[i.index].place].arbiter ? "xuntil" : "until";
@@ -252,7 +252,7 @@ bool export_control(parse_cog::composition &comp, const controlflow::Tree<chp::t
 	arithmetic::Expression guard = isEmbedded and not isGuarded
 		? compute_guard(tree, i).minimize()
 		: arithmetic::Expression::vdd();
-	if (not guard.isValid()) {
+	if (not guard.isValid() and not guard.isUndef() and not isGuarded) {
 		parse_cog::control result;
 		result.valid = true;
 		result.kind = "await";
@@ -262,22 +262,22 @@ bool export_control(parse_cog::composition &comp, const controlflow::Tree<chp::t
 			guard = popTrue(guard);
 		}
 		result.guard = export_expression(guard, nets);
-		result.action = export_composition(tree, i, true, nets);
+		result.action = export_composition(tree, i, true, nets).first;
 		comp.branches.push_back(std::shared_ptr<parse::syntax>(result.clone()));
 		return false;
 	}
 
-	parse_cog::composition result = export_composition(tree, i, false, nets);
-	if (comp.level == result.level or result.branches.size() == 1u) {
-		comp.branches.insert(comp.branches.end(), result.branches.begin(), result.branches.end());
-		comp.comp.insert(comp.comp.end(), result.comp.begin(), result.comp.end());
+	pair<parse_cog::composition, bool> result = export_composition(tree, i, isGuarded, nets);
+	if (comp.level == result.first.level or result.first.branches.size() == 1u) {
+		comp.branches.insert(comp.branches.end(), result.first.branches.begin(), result.first.branches.end());
+		comp.comp.insert(comp.comp.end(), result.first.comp.begin(), result.first.comp.end());
 	} else {
-		comp.branches.push_back(std::shared_ptr<parse::syntax>(result.clone()));
+		comp.branches.push_back(std::shared_ptr<parse::syntax>(result.first.clone()));
 	}
-	return false;
+	return result.second;
 }
 
-parse_cog::composition export_composition(const controlflow::Tree<chp::transition, chp::place> &tree, controlflow::Index i, bool isGuarded, ucs::ConstNetlist nets) {
+pair<parse_cog::composition, bool> export_composition(const controlflow::Tree<chp::transition, chp::place> &tree, controlflow::Index i, bool isGuarded, ucs::ConstNetlist nets) {
 	bool isEmbedded = false;
 	parse_cog::composition result;
 	result.level = parse_cog::composition::SEQUENCE;
@@ -297,15 +297,11 @@ parse_cog::composition export_composition(const controlflow::Tree<chp::transitio
 	}
 
 	if (i.type == controlflow::Index::TRANSITION) {
-		export_control(result, tree, i, controlflow::Index(), isEmbedded, isGuarded, nets);
-		return result;
+		bool loopGuard = export_control(result, tree, i, controlflow::Index(), isEmbedded, isGuarded, nets);
+		return {result, loopGuard};
 	}
 
 	for (size_t j = 0; j < tree.nodes[i.index].procs.size(); j++) {
-		if (not result.branches.empty()) {
-			result.comp.push_back(comp);
-		}
-
 		controlflow::Index curr = tree.nodes[i.index].procs[j];
 		controlflow::Index next;
 		if (j+1 < tree.nodes[i.index].procs.size()
@@ -314,15 +310,17 @@ parse_cog::composition export_composition(const controlflow::Tree<chp::transitio
 			next = tree.nodes[i.index].procs[j+1];
 		}
 		
-		if (export_control(result, tree, curr, next, isEmbedded, isGuarded, nets)) {
-			j++;
+		bool loopGuard = export_control(result, tree, curr, next, isEmbedded, isGuarded, nets);
+
+		if (result.branches.size() > result.comp.size()+1) {
+			result.comp.push_back(comp);
 		}
 
 		if (result.level == parse_cog::composition::SEQUENCE) {
-			isGuarded = false;
+			isGuarded = loopGuard;
 		}
 	}
-	return result;
+	return {result, isGuarded and result.level == parse_cog::composition::SEQUENCE};
 }
 
 parse_cog::composition export_cog(const controlflow::Tree<chp::transition, chp::place> &tree, ucs::ConstNetlist nets, controlflow::Index i) {
