@@ -13,7 +13,7 @@ ExpressionImporter::ExpressionImporter(ucs::Netlist symbols, int region, bool au
 ExpressionImporter::~ExpressionImporter() {
 }
 
-arithmetic::Expression ExpressionImporter::import_term(const parse_expression::expression::argument &syntax, tokenizer *tokens) const {
+arithmetic::Expression ExpressionImporter::import_term(const parse_expression::expression::argument &syntax, tokenizer *tokens, int arg) const {
 	if (syntax.type < 0 or syntax.type >= (int)expression_config::cfg->literals.size() or not syntax.ptr) {
 		return arithmetic::Expression::undef();
 	}
@@ -238,7 +238,7 @@ arithmetic::Action CompositionImporter::import_assignment(const assignment &synt
 	return result;
 }
 
-arithmetic::Choice CompositionImporter::import_term(const parse_expression::expression::argument &syntax, tokenizer *tokens) const {
+arithmetic::Choice CompositionImporter::import_term(const parse_expression::expression::argument &syntax, tokenizer *tokens, int arg) const {
 	if (syntax.type < 0 or syntax.type >= (int)expression_config::cfg->literals.size() or not syntax.ptr) {
 		return arithmetic::Choice();
 	}

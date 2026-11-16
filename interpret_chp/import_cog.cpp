@@ -12,12 +12,13 @@ namespace parse_cog {
 ExpressionImporter::ExpressionImporter(ucs::Netlist symbols, int region, bool autoDefine) : symbols(symbols) {
 	this->region.push_back(region);
 	this->autoDefine = autoDefine;
+	this->needLabel = false;
 }
 
 ExpressionImporter::~ExpressionImporter() {
 }
 
-arithmetic::Expression ExpressionImporter::import_term(const parse_expression::expression::argument &syntax, tokenizer *tokens) const {
+arithmetic::Expression ExpressionImporter::import_term(const parse_expression::expression::argument &syntax, tokenizer *tokens, int arg) const {
 	if (syntax.type < 0 or syntax.type >= (int)expression_config::cfg->literals.size() or not syntax.ptr) {
 		return arithmetic::Expression::undef();
 	}
@@ -27,13 +28,13 @@ arithmetic::Expression ExpressionImporter::import_term(const parse_expression::e
 	if (type == "constant") {
 		std::string value = syntax.ptr->get<constant>().value;
 		return arithmetic::import_constant(value, tokens);
-	} else if (type == "literal") {
+	} else if (type == "literal" and not needLabel) {
 		std::string name = syntax.ptr->get<literal>().name;
 		if (region.back() != 0) {
 			name += "'" + std::to_string(region.back());
 		}
 		return arithmetic::import_literal(name, symbols, tokens, autoDefine);
-	} else if (type == "label") {
+	} else if (type == "label" or (type == "literal" and needLabel and arg == 0)) {
 		std::string name = syntax.ptr->get<label>().value;
 		return arithmetic::Expression::labelOf(name);
 	} else if (type == "ident") {
@@ -58,12 +59,16 @@ void ExpressionImporter::push_properties(parse_expression::operation op, const v
 			}
 		}
 		this->region.push_back(value);
+	} if (op.is("", "(", "", ")")) {
+		this->needLabel = true;
 	}
 }
 
 void ExpressionImporter::pop_properties(parse_expression::operation op) {
 	if (op.is("", "'", "", "")) { // Region
 		region.pop_back();
+	} if (op.is("", "(", "", ")")) {
+		this->needLabel = false;
 	}
 }
 
@@ -292,7 +297,7 @@ arithmetic::Action CompositionImporter::import_assignment(const assignment &synt
 	return result;
 }
 
-arithmetic::Choice CompositionImporter::import_term(const parse_expression::expression::argument &syntax, tokenizer *tokens) const {
+arithmetic::Choice CompositionImporter::import_term(const parse_expression::expression::argument &syntax, tokenizer *tokens, int arg) const {
 	if (syntax.type < 0 or syntax.type >= (int)expression_config::cfg->literals.size() or not syntax.ptr) {
 		return arithmetic::Choice();
 	}
