@@ -12,7 +12,7 @@ namespace parse_cog {
 ExpressionImporter::ExpressionImporter(ucs::Netlist symbols, int region, bool autoDefine) : symbols(symbols) {
 	this->region.push_back(region);
 	this->autoDefine = autoDefine;
-	this->needLabel = false;
+	this->needLabel.push_back(false);
 }
 
 ExpressionImporter::~ExpressionImporter() {
@@ -28,13 +28,13 @@ arithmetic::Expression ExpressionImporter::import_term(const parse_expression::e
 	if (type == "constant") {
 		std::string value = syntax.ptr->get<constant>().value;
 		return arithmetic::import_constant(value, tokens);
-	} else if (type == "literal" and not needLabel) {
+	} else if (type == "literal" and (not needLabel.back() or arg != 0)) {
 		std::string name = syntax.ptr->get<literal>().name;
 		if (region.back() != 0) {
 			name += "'" + std::to_string(region.back());
 		}
 		return arithmetic::import_literal(name, symbols, tokens, autoDefine);
-	} else if (type == "label" or (type == "literal" and needLabel and arg == 0)) {
+	} else if (type == "label" or (type == "literal" and needLabel.back() and arg == 0)) {
 		std::string name = syntax.ptr->get<label>().value;
 		return arithmetic::Expression::labelOf(name);
 	} else if (type == "ident") {
@@ -59,17 +59,17 @@ void ExpressionImporter::push_properties(parse_expression::operation op, const v
 			}
 		}
 		this->region.push_back(value);
-	} if (op.is("", "(", "", ")")) {
-		this->needLabel = true;
 	}
+
+	this->needLabel.push_back(op.is("", "(", ",", ")"));
 }
 
 void ExpressionImporter::pop_properties(parse_expression::operation op) {
 	if (op.is("", "'", "", "")) { // Region
 		region.pop_back();
-	} if (op.is("", "(", "", ")")) {
-		this->needLabel = false;
 	}
+
+	this->needLabel.pop_back();
 }
 
 arithmetic::Expression ExpressionImporter::import_unary(parse_expression::operation op, arithmetic::Expression expr, tokenizer *tokens) const {

@@ -21,7 +21,7 @@ struct ExpressionImporter : parse_expression::Importer<arithmetic::Expression> {
 	ucs::Netlist symbols;
 	vector<int> region;
 	bool autoDefine;
-	bool needLabel;
+	vector<bool> needLabel;
 
 	ExpressionImporter(ucs::Netlist symbols, int region = 0, bool autoDefine = false);
 	~ExpressionImporter();
